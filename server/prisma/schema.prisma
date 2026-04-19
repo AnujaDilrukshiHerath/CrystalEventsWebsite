@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Branch {
+  id          String  @id
+  name        String
+  location    String
+  description String
+  image       String
+  mapLink     String?
+  halls       Hall[]
+}
+
+model Hall {
+  id          String   @id
+  name        String
+  branchId    String
+  floor       String
+  minCapacity Int?
+  maxCapacity Int
+  description String
+  images      String   // JSON string of array
+  branch      Branch   @relation(fields: [branchId], references: [id])
+}
+
+model Event {
+  id          String   @id
+  name        String
+  description String
+  image       String
+  videoUrl    String?
+}
+
+model Cuisine {
+  id          String   @id
+  name        String
+  description String
+  menu        String   // JSON string of categories and items
+}
+
+model Enquiry {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+  branch    String
+  hall      String
+  date      String
+  guests    Int
+  eventType String
+  message   String?
+  status    String   @default("pending") // pending, reviewed, contacted
+  createdAt DateTime @default(now())
+}
+
+model AdminUser {
+  id       String @id @default(uuid())
+  email    String @unique
+  password String
+}
