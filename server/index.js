@@ -2,11 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const path = require('path');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/authRoutes');
-const cookieParser = require('cookie-parser');
 
 const app = express();
 const PORT = process.env.PORT || 5050;
@@ -18,9 +19,18 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
 
-// Routes
+// API Routes
 app.use('/api', apiRoutes);
 app.use('/api/admin', authRoutes);
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 
 // Health check
 app.get('/health', (req, res) => {
