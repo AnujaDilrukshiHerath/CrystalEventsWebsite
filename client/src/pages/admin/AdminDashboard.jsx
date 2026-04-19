@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useEffect } from 'react'
+import { getApiUrl } from '../../utils/api'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
@@ -9,7 +10,7 @@ export default function AdminDashboard() {
   const { data: auth, isLoading: checkingAuth } = useQuery({
     queryKey: ['checkAuth'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/me')
+      const res = await fetch(getApiUrl('/api/admin/me'))
       if (!res.ok) throw new Error('Not authenticated')
       return res.json()
     },
@@ -25,7 +26,7 @@ export default function AdminDashboard() {
   const { data: enquiries, isLoading: loadingEnquiries } = useQuery({
     queryKey: ['enquiries'],
     queryFn: async () => {
-      const res = await fetch('/api/admin/enquiries')
+      const res = await fetch(getApiUrl('/api/admin/enquiries'))
       if (!res.ok) throw new Error('Failed to fetch enquiries')
       return res.json()
     },
@@ -34,7 +35,7 @@ export default function AdminDashboard() {
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }) => {
-      const res = await fetch(`/api/admin/enquiries/${id}/status`, {
+      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -139,4 +140,3 @@ export default function AdminDashboard() {
     </div>
   )
 }
-

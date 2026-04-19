@@ -2,12 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { MapPin, Users, ExternalLink } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { getApiUrl } from '../utils/api'
 
 export default function Venues() {
   const { data: branches, isLoading: loadingBranches } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const res = await fetch('/api/branches')
+      const res = await fetch(getApiUrl('/api/branches'))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }
@@ -16,7 +17,7 @@ export default function Venues() {
   const { data: halls, isLoading: loadingHalls } = useQuery({
     queryKey: ['halls'],
     queryFn: async () => {
-      const res = await fetch('/api/halls')
+      const res = await fetch(getApiUrl('/api/halls'))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, Link } from 'react-router-dom'
 import { MapPin, Users, ArrowLeft, Layers, CheckCircle2 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { getApiUrl } from '../utils/api'
 
 export default function VenueDetails() {
   const { id } = useParams()
@@ -9,7 +10,7 @@ export default function VenueDetails() {
   const { data: hall, isLoading: loadingHall } = useQuery({
     queryKey: ['hall', id],
     queryFn: async () => {
-      const res = await fetch(`/api/halls/${id}`)
+      const res = await fetch(getApiUrl(`/api/halls/${id}`))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }
@@ -19,7 +20,7 @@ export default function VenueDetails() {
   const { data: branches, isLoading: loadingBranches } = useQuery({
     queryKey: ['branches'],
     queryFn: async () => {
-      const res = await fetch('/api/branches')
+      const res = await fetch(getApiUrl('/api/branches'))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }

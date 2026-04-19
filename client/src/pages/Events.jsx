@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { getApiUrl } from '../utils/api'
 
 export default function Events() {
   const { data: events, isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
-      const res = await fetch('/api/events')
+      const res = await fetch(getApiUrl('/api/events'))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }

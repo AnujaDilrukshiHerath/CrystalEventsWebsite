@@ -12,9 +12,18 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 const PORT = process.env.PORT || 5050;
 
+// CORS configuration for separate deployment
+const corsOptions = {
+  origin: process.env.CLIENT_URL || true, // true allows the current origin
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
-app.use(helmet());
+app.use(cors(corsOptions));
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
@@ -23,7 +32,7 @@ app.use(cookieParser());
 app.use('/api', apiRoutes);
 app.use('/api/admin', authRoutes);
 
-// Serve static files in production
+// Serve static files in production (if deployed as a single unit)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/dist')));
   

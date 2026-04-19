@@ -1,11 +1,12 @@
 import { useForm } from 'react-hook-form'
+import { getApiUrl } from '../utils/api'
 
 export default function Contact() {
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm()
 
   const onSubmit = async (data) => {
     try {
-      const response = await fetch('/api/enquiries', {
+      const response = await fetch(getApiUrl('/api/enquiries'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,11 +102,11 @@ export default function Contact() {
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm text-crystal-dark mb-2">Message</label>
-              <textarea 
+              <input 
                 {...register('message')} 
                 rows={4}
                 className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
-              ></textarea>
+              ></input>
             </div>
           </div>
           

@@ -1,7 +1,9 @@
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
+import { getApiUrl } from '../../utils/api'
 import Logo from '../../components/common/Logo'
+
 
 export default function AdminLogin() {
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm()
@@ -11,7 +13,7 @@ export default function AdminLogin() {
   const onSubmit = async (data) => {
     setLoginError('')
     try {
-      const response = await fetch('/api/admin/login', {
+      const response = await fetch(getApiUrl('/api/admin/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),

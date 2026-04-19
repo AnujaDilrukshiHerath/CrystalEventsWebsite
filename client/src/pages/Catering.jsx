@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Utensils } from 'lucide-react'
+import { getApiUrl } from '../utils/api'
 
 export default function Catering() {
   const { data: catering, isLoading } = useQuery({
     queryKey: ['catering'],
     queryFn: async () => {
-      const res = await fetch('/api/catering')
+      const res = await fetch(getApiUrl('/api/catering'))
       if (!res.ok) throw new Error('Network response was not ok')
       return res.json()
     }
