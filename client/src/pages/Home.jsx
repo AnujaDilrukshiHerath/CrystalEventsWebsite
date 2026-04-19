@@ -8,10 +8,12 @@ export default function Home() {
       <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=80&w=2000" 
+            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=70&w=1600" 
             alt="Luxury Event Hall" 
+            loading="eager"
             className="w-full h-full object-cover brightness-[0.4]"
           />
+
         </div>
         
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-20">

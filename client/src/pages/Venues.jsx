@@ -64,8 +64,10 @@ export default function Venues() {
                   <img 
                     src={branch.image} 
                     alt={branch.name} 
+                    loading="lazy"
                     className="w-full aspect-[4/3] object-cover shadow-2xl rounded-sm"
                   />
+
                 </div>
                 <div className="w-full md:w-1/2 space-y-6">
                   <h2 className="text-4xl font-serif text-crystal-blue">{branch.name} Branch</h2>
@@ -102,8 +104,10 @@ export default function Venues() {
                         <img 
                           src={hall.images[0]} 
                           alt={hall.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                         />
+
                         <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 text-xs font-semibold uppercase tracking-wider text-crystal-dark">
                           {hall.floor}
                         </div>

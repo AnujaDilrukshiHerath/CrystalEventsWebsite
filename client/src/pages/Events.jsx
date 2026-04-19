@@ -63,8 +63,10 @@ export default function Events() {
                     <img 
                       src={event.image} 
                       alt={event.name} 
+                      loading="lazy"
                       className="w-full h-[350px] md:h-[500px] object-cover group-hover:scale-105 transition-transform duration-1000"
                     />
+
                     <div className="absolute inset-0 border-[16px] border-white/20 mix-blend-overlay m-4 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                   </>
                 )}
