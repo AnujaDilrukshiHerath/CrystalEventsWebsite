@@ -4,7 +4,7 @@ module.exports = {
     description: "A rich blend of spices and traditional recipes.",
     menu: {
       starters: ["Fish Cutlets", "Mutton Rolls", "Vegetable Patties"],
-      mains: ["Chicken Dry", "Black Pork Curry", "Dhal Curry", "Brinjal Moju"],
+      mains: ["Chicken Dry", "Dhal Curry", "Brinjal Moju"],
       rice: ["Yellow Rice", "String Hoppers", "Lumprais"],
       desserts: ["Watalappan", "Curd & Treacle", "Fruit Salad"],
       drinks: ["Falooda", "Iced Milo", "Soft Drinks"]
