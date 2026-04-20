@@ -15,6 +15,7 @@ model Branch {
   name        String
   location    String
   description String
+  phone       String?
   image       String
   mapLink     String?
   halls       Hall[]
