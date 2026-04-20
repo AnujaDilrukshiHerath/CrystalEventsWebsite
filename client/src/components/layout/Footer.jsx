@@ -7,7 +7,7 @@ export default function Footer() {
     <footer className="bg-crystal-dark text-white pt-16 pb-8 border-t border-crystal-gold/20">
       <div className="container mx-auto px-4 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
-          
+
           {/* Brand */}
           <div className="space-y-4">
             <Link to="/" className="hover:opacity-90 transition-opacity mb-6 inline-block">
@@ -68,13 +68,21 @@ export default function Footer() {
                 <span>Wembley: 020 3576 5765</span>
               </li>
               <li className="flex items-center gap-3 text-sm text-gray-400">
+                <Phone size={16} className="text-crystal-gold shrink-0" />
+                <span>Hayes: 020 8848 4818</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-gray-400">
+                <Phone size={16} className="text-crystal-gold shrink-0" />
+                <span>Slough: 01753 526 685</span>
+              </li>
+              <li className="flex items-center gap-3 text-sm text-gray-400">
                 <Mail size={16} className="text-crystal-gold shrink-0" />
                 <a href="mailto:info@crystaleventsandmanagement.co.uk" className="hover:text-crystal-gold transition-colors break-all">
                   info@crystaleventsandmanagement.co.uk
                 </a>
               </li>
             </ul>
-            <Link 
+            <Link
               to="/contact"
               className="inline-block mt-6 px-6 py-2 bg-crystal-gold text-crystal-dark hover:bg-white transition-colors text-sm font-medium uppercase tracking-wide"
             >
@@ -83,7 +91,7 @@ export default function Footer() {
           </div>
 
         </div>
-        
+
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-500">
           <p>&copy; {new Date().getFullYear()} Crystal Events. All rights reserved.</p>
           <div className="flex gap-4 mt-4 md:mt-0">

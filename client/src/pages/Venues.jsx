@@ -87,17 +87,29 @@ export default function Venues() {
                   <p className="text-gray-600 leading-relaxed">
                     {branch.description}
                   </p>
-                  {branch.mapLink && (
-                    <a 
-                      href={branch.mapLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-3 border border-crystal-gold text-crystal-gold hover:bg-crystal-gold hover:text-crystal-dark transition-all duration-300 uppercase tracking-wide text-sm font-medium"
-                    >
-                      <ExternalLink size={16} />
-                      View on Map
-                    </a>
-                  )}
+                  <div className="flex flex-wrap gap-4 pt-2">
+                    {branch.phone && (
+                      <a 
+                        href={`tel:${branch.phone}`}
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-crystal-gold text-crystal-dark hover:bg-white transition-all duration-300 uppercase tracking-wide text-sm font-medium"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                        Call Branch
+                      </a>
+                    )}
+                    {branch.mapLink && (
+                      <a 
+                        href={branch.mapLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-6 py-3 border border-crystal-gold text-crystal-gold hover:bg-crystal-gold hover:text-crystal-dark transition-all duration-300 uppercase tracking-wide text-sm font-medium"
+                      >
+                        <ExternalLink size={16} />
+                        View on Map
+                      </a>
+                    )}
+                  </div>
+
                 </div>
               </div>
 
