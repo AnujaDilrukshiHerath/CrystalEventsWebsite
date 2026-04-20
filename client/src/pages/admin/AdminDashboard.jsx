@@ -10,7 +10,11 @@ export default function AdminDashboard() {
   const { data: auth, isLoading: checkingAuth } = useQuery({
     queryKey: ['checkAuth'],
     queryFn: async () => {
-      const res = await fetch(getApiUrl('/api/admin/me'), { credentials: 'include' })
+      const res = await fetch(getApiUrl('/api/admin/me'), { 
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      })
       if (!res.ok) throw new Error('Not authenticated')
       return res.json()
     },
@@ -26,7 +30,11 @@ export default function AdminDashboard() {
   const { data: enquiries, isLoading: loadingEnquiries } = useQuery({
     queryKey: ['enquiries'],
     queryFn: async () => {
-      const res = await fetch(getApiUrl('/api/admin/enquiries'), { credentials: 'include' })
+      const res = await fetch(getApiUrl('/api/admin/enquiries'), { 
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      })
       if (!res.ok) throw new Error('Failed to fetch enquiries')
       return res.json()
     },
@@ -37,8 +45,10 @@ export default function AdminDashboard() {
     mutationFn: async ({ id, status }) => {
       const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/status`), {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
         body: JSON.stringify({ status })
       })
 
@@ -71,7 +81,7 @@ export default function AdminDashboard() {
           <h1 className="text-4xl font-serif text-crystal-blue">Enquiries Dashboard</h1>
           <button 
             onClick={() => {
-              document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+              localStorage.removeItem('adminToken');
               navigate('/admin/login')
             }}
             className="px-6 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors text-sm uppercase tracking-wide font-medium"

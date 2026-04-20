@@ -22,6 +22,8 @@ export default function AdminLogin() {
 
       
       if (response.ok) {
+        const data = await response.json()
+        localStorage.setItem('adminToken', data.token)
         navigate('/admin/dashboard')
       } else {
         const errorData = await response.json()

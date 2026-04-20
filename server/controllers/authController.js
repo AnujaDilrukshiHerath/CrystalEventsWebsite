@@ -28,15 +28,15 @@ exports.login = async (req, res) => {
 
     const token = jwt.sign({ id: admin.id, email: admin.email }, JWT_SECRET, { expiresIn: '1d' });
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: true, // Required for sameSite: 'none'
-      sameSite: 'none', // Allow cross-domain cookies
-      maxAge: 24 * 60 * 60 * 1000 // 1 day
-    });
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: true, // Required for sameSite: 'none'
+    //   sameSite: 'none', // Allow cross-domain cookies
+    //   maxAge: 24 * 60 * 60 * 1000 // 1 day
+    // });
 
 
-    res.status(200).json({ message: 'Logged in successfully' });
+    res.status(200).json({ message: 'Logged in successfully', token });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -45,7 +45,8 @@ exports.login = async (req, res) => {
 
 exports.checkAuth = (req, res) => {
   try {
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
       return res.status(401).json({ authenticated: false });
     }
@@ -59,7 +60,8 @@ exports.checkAuth = (req, res) => {
 
 exports.getEnquiries = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
@@ -85,7 +87,8 @@ exports.updateEnquiryStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
