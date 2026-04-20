@@ -8,7 +8,7 @@ module.exports = [
     minCapacity: 200,
     maxCapacity: 500,
     description: "A majestic downstairs hall perfect for grand weddings and large receptions.",
-    images: ["/hayes-downstairs.jpg"]
+    images: ["/images/hayes/hayes-downstairs.jpeg"]
   },
   {
     id: "hall-hayes-diamond",
