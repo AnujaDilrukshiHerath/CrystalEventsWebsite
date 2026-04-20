@@ -4,6 +4,7 @@ module.exports = [
     name: "Hayes",
     location: "Hayes, London",
     description: "Our flagship branch offering grand spaces for large events.",
+    phone: "02088484818",
     image: "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=60&w=800",
     mapLink: "https://share.google/MWQvdaXaYnWtt1KTn"
   },
