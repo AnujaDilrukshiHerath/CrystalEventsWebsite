@@ -30,84 +30,45 @@ exports.submitEnquiry = async (req, res) => {
       }
     });
 
-    // 2. Send Emails using Nodemailer
-    let transporter;
-    
-    // Check if real SMTP credentials are provided in .env
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Pre-resolve hostname to IPv4 address to avoid ENETUNREACH errors on IPv6-unsupported networks
-      let host = process.env.SMTP_HOST;
+    // 2. Send Emails using Resend
+    if (process.env.RESEND_API_KEY) {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+
+      // Send confirmation to user and notification to Admin
+      // Note: On the free tier without a custom domain, you can only send to your own email.
+      // We will send both notifications to the admin email for now to ensure they are received.
+      const adminEmail = process.env.ADMIN_EMAIL || "crystalpayments@icloud.com";
+
       try {
-        const dns = require('dns').promises;
-        const lookup = await dns.lookup(host, { family: 4 });
-        host = lookup.address;
-        console.log(`Resolved ${process.env.SMTP_HOST} to IPv4: ${host}`);
-      } catch (dnsError) {
-        console.error('DNS resolution failed, falling back to hostname:', dnsError);
+        await resend.emails.send({
+          from: 'Crystal Events <onboarding@resend.dev>',
+          to: [adminEmail, email], // Try to send to both
+          subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
+          html: `
+            <h2>New Enquiry Received</h2>
+            <p><b>Name:</b> ${firstName} ${lastName}</p>
+            <p><b>Email:</b> ${email}</p>
+            <p><b>Phone:</b> ${phone}</p>
+            <p><b>Event Type:</b> ${eventType}</p>
+            <p><b>Branch:</b> ${preferredBranch}</p>
+            <p><b>Hall:</b> ${preferredHall}</p>
+            <p><b>Guests:</b> ${estimatedGuestCount}</p>
+            <p><b>Date:</b> ${eventDate}</p>
+            <p><b>Message:</b> ${message}</p>
+            <hr>
+            <p>This is an automated notification from your Crystal Events website.</p>
+          `
+        });
+        console.log("Emails sent successfully via Resend");
+      } catch (sendError) {
+        console.error("Resend error:", sendError);
+        // We don't want to fail the whole request if email fails, 
+        // as the enquiry is already saved in the database.
       }
-
-      transporter = nodemailer.createTransport({
-        host: host,
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        tls: {
-          rejectUnauthorized: false
-        },
-        servername: 'smtp.gmail.com', // Explicitly set servername for SNI
-      });
     } else {
-      // Fallback to Ethereal (Mock service for local testing)
-      console.log("No SMTP credentials found in .env. Falling back to Ethereal Mock Email...");
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
+      console.log("No RESEND_API_KEY found. Skipping email.");
     }
-
-    const info = await transporter.sendMail({
-      from: '"Crystal Events" <info@crystaleventsandmanagement.co.uk>',
-      to: email, // Send confirmation to user
-      subject: "We received your enquiry!",
-      text: `Hello ${firstName},\n\nThank you for enquiring about our ${preferredBranch} branch for your ${eventType}. We will get back to you shortly.\n\nBest,\nCrystal Events Team`,
-      html: `<b>Hello ${firstName},</b><br>Thank you for enquiring about our ${preferredBranch} branch for your ${eventType}. We will get back to you shortly.<br><br>Best,<br>Crystal Events Team`,
-    });
-
-    // Send notification to Admin
-    const adminEmail = "crystalpayments@icloud.com";
-    const adminInfo = await transporter.sendMail({
-      from: '"Crystal Events System" <info@crystaleventsandmanagement.co.uk>',
-      to: adminEmail,
-      subject: `New Enquiry Received: ${eventType} at ${preferredBranch}`,
-      text: `New Enquiry Details:\n\nName: ${firstName} ${lastName}\nEmail: ${email}\nPhone: ${phone}\nEvent Type: ${eventType}\nBranch: ${preferredBranch}\nHall: ${preferredHall}\nGuests: ${estimatedGuestCount}\nDate: ${eventDate}\nMessage: ${message}`,
-      html: `<h2>New Enquiry Received</h2>
-             <p><b>Name:</b> ${firstName} ${lastName}</p>
-             <p><b>Email:</b> ${email}</p>
-             <p><b>Phone:</b> ${phone}</p>
-             <p><b>Event Type:</b> ${eventType}</p>
-             <p><b>Branch:</b> ${preferredBranch}</p>
-             <p><b>Hall:</b> ${preferredHall}</p>
-             <p><b>Guests:</b> ${estimatedGuestCount}</p>
-             <p><b>Date:</b> ${eventDate}</p>
-             <p><b>Message:</b> ${message}</p>`,
-    });
-
-    console.log("User Email sent: %s", info.messageId);
-    console.log("Admin Email sent: %s", adminInfo.messageId);
-    console.log("Preview URL (User): %s", nodemailer.getTestMessageUrl(info));
-    console.log("Preview URL (Admin): %s", nodemailer.getTestMessageUrl(adminInfo));
 
     res.status(201).json({ message: "Enquiry submitted successfully", referenceId: enquiry.id });
   } catch (error) {

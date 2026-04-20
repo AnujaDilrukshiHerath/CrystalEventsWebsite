@@ -165,62 +165,35 @@ exports.sendPaymentReminder = async (req, res) => {
     const paid = enquiry.paidAmount;
     const balance = total - paid;
 
-    let transporter;
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-      // Pre-resolve hostname to IPv4 address to avoid ENETUNREACH errors on IPv6-unsupported networks
-      let host = process.env.SMTP_HOST;
+    // Send Email using Resend
+    if (process.env.RESEND_API_KEY) {
+      const { Resend } = require('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+
       try {
-        const dns = require('dns').promises;
-        const lookup = await dns.lookup(host, { family: 4 });
-        host = lookup.address;
-        console.log(`Resolved ${process.env.SMTP_HOST} to IPv4: ${host}`);
-      } catch (dnsError) {
-        console.error('DNS resolution failed, falling back to hostname:', dnsError);
+        await resend.emails.send({
+          from: 'Crystal Events <onboarding@resend.dev>',
+          to: enquiry.email,
+          subject: "Payment Reminder - Crystal Events",
+          html: `
+            <b>Hello ${enquiry.firstName},</b><br><br>
+            This is a reminder regarding your upcoming event at Crystal Events.<br><br>
+            <b>Total Agreed Price:</b> ${formatter.format(total)}<br>
+            <b>Amount Paid:</b> ${formatter.format(paid)}<br>
+            <b>Outstanding Balance:</b> ${formatter.format(balance)}<br><br>
+            Please arrange for the outstanding balance to be paid prior to your event.<br><br>
+            Thank you,<br>
+            Crystal Events Team
+          `
+        });
+        console.log("Payment reminder sent successfully via Resend");
+      } catch (sendError) {
+        console.error("Resend error:", sendError);
       }
-
-      transporter = nodemailer.createTransport({
-        host: host,
-        port: 587,
-        secure: false,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 30000,
-        tls: {
-          rejectUnauthorized: false
-        },
-        servername: 'smtp.gmail.com', // Explicitly set servername for SNI
-      });
     } else {
-      const testAccount = await nodemailer.createTestAccount();
-      transporter = nodemailer.createTransport({
-        host: "smtp.ethereal.email",
-        port: 587,
-        secure: false,
-        auth: {
-          user: testAccount.user,
-          pass: testAccount.pass,
-        },
-      });
+      console.log("No RESEND_API_KEY found. Skipping reminder email.");
     }
-
-    const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
-
-    await transporter.sendMail({
-      from: '"Crystal Events Accounts" <crystalpayments@icloud.com>',
-      to: enquiry.email,
-      subject: "Payment Reminder - Crystal Events",
-      text: `Hello ${enquiry.firstName},\n\nThis is a reminder regarding your upcoming event at Crystal Events.\n\nTotal Agreed Price: ${formatter.format(total)}\nAmount Paid: ${formatter.format(paid)}\nOutstanding Balance: ${formatter.format(balance)}\n\nPlease arrange for the outstanding balance to be paid prior to your event.\n\nThank you,\nCrystal Events Team`,
-      html: `<b>Hello ${enquiry.firstName},</b><br><br>This is a reminder regarding your upcoming event at Crystal Events.<br><br>
-             <b>Total Agreed Price:</b> ${formatter.format(total)}<br>
-             <b>Amount Paid:</b> ${formatter.format(paid)}<br>
-             <b>Outstanding Balance:</b> ${formatter.format(balance)}<br><br>
-             Please arrange for the outstanding balance to be paid prior to your event.<br><br>
-             Thank you,<br>Crystal Events Team`,
-    });
 
     res.status(200).json({ message: 'Reminder sent successfully' });
   } catch (error) {
