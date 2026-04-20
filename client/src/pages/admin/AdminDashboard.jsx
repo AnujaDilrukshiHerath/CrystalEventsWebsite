@@ -10,7 +10,7 @@ export default function AdminDashboard() {
   const { data: auth, isLoading: checkingAuth } = useQuery({
     queryKey: ['checkAuth'],
     queryFn: async () => {
-      const res = await fetch(getApiUrl('/api/admin/me'))
+      const res = await fetch(getApiUrl('/api/admin/me'), { credentials: 'include' })
       if (!res.ok) throw new Error('Not authenticated')
       return res.json()
     },
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   const { data: enquiries, isLoading: loadingEnquiries } = useQuery({
     queryKey: ['enquiries'],
     queryFn: async () => {
-      const res = await fetch(getApiUrl('/api/admin/enquiries'))
+      const res = await fetch(getApiUrl('/api/admin/enquiries'), { credentials: 'include' })
       if (!res.ok) throw new Error('Failed to fetch enquiries')
       return res.json()
     },
@@ -38,8 +38,10 @@ export default function AdminDashboard() {
       const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/status`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ status })
       })
+
       if (!res.ok) throw new Error('Failed to update status')
       return res.json()
     },

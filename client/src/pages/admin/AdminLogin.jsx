@@ -16,8 +16,10 @@ export default function AdminLogin() {
       const response = await fetch(getApiUrl('/api/admin/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(data),
       })
+
       
       if (response.ok) {
         navigate('/admin/dashboard')
