@@ -18,7 +18,7 @@ module.exports = [
     minCapacity: 200,
     maxCapacity: 500,
     description: "An elegant upstairs suite ideal for sophisticated gatherings.",
-    images: ["https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/hayes/hayes-diamondsuite.jpeg"]
   },
   // Slough
   {
