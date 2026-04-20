@@ -60,8 +60,10 @@ model Enquiry {
   guests    Int
   eventType String
   message   String?
-  status    String   @default("pending") // pending, reviewed, contacted
-  createdAt DateTime @default(now())
+  status      String   @default("pending") // pending, reviewed, contacted
+  totalAmount Float?
+  paidAmount  Float    @default(0)
+  createdAt   DateTime @default(now())
 }
 
 model AdminUser {

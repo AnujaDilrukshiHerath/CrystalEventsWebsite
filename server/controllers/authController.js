@@ -2,6 +2,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
 
@@ -108,6 +109,107 @@ exports.updateEnquiryStatus = async (req, res) => {
   } catch (error) {
     console.error('Error updating enquiry status:', error);
     res.status(500).json({ message: 'Server error updating enquiry status' });
+  }
+};
+
+exports.updatePayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { totalAmount, paidAmount } = req.body;
+    
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    jwt.verify(token, JWT_SECRET);
+
+    const updatedEnquiry = await prisma.enquiry.update({
+      where: { id },
+      data: { 
+        totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
+        paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined
+      }
+    });
+
+    res.status(200).json(updatedEnquiry);
+  } catch (error) {
+    console.error('Error updating payment:', error);
+    res.status(500).json({ message: 'Server error updating payment' });
+  }
+};
+
+exports.sendPaymentReminder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    jwt.verify(token, JWT_SECRET);
+
+    const enquiry = await prisma.enquiry.findUnique({ where: { id } });
+    if (!enquiry) {
+      return res.status(404).json({ message: 'Enquiry not found' });
+    }
+
+    if (enquiry.totalAmount === null) {
+      return res.status(400).json({ message: 'Total amount is not set' });
+    }
+
+    const total = enquiry.totalAmount;
+    const paid = enquiry.paidAmount;
+    const balance = total - paid;
+
+    let transporter;
+    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      });
+    } else {
+      const testAccount = await nodemailer.createTestAccount();
+      transporter = nodemailer.createTransport({
+        host: "smtp.ethereal.email",
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass,
+        },
+      });
+    }
+
+    const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' });
+
+    await transporter.sendMail({
+      from: '"Crystal Events Accounts" <crystalpayments@icloud.com>',
+      to: enquiry.email,
+      subject: "Payment Reminder - Crystal Events",
+      text: `Hello ${enquiry.firstName},\n\nThis is a reminder regarding your upcoming event at Crystal Events.\n\nTotal Agreed Price: ${formatter.format(total)}\nAmount Paid: ${formatter.format(paid)}\nOutstanding Balance: ${formatter.format(balance)}\n\nPlease arrange for the outstanding balance to be paid prior to your event.\n\nThank you,\nCrystal Events Team`,
+      html: `<b>Hello ${enquiry.firstName},</b><br><br>This is a reminder regarding your upcoming event at Crystal Events.<br><br>
+             <b>Total Agreed Price:</b> ${formatter.format(total)}<br>
+             <b>Amount Paid:</b> ${formatter.format(paid)}<br>
+             <b>Outstanding Balance:</b> ${formatter.format(balance)}<br><br>
+             Please arrange for the outstanding balance to be paid prior to your event.<br><br>
+             Thank you,<br>Crystal Events Team`,
+    });
+
+    res.status(200).json({ message: 'Reminder sent successfully' });
+  } catch (error) {
+    console.error('Error sending reminder:', error);
+    res.status(500).json({ message: 'Server error sending reminder' });
+  }
+};
   }
 };
 

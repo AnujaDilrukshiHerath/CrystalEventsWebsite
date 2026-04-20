@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { getApiUrl } from '../../utils/api'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [paymentModal, setPaymentModal] = useState({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })
 
   const { data: auth, isLoading: checkingAuth } = useQuery({
     queryKey: ['checkAuth'],
@@ -64,6 +65,52 @@ export default function AdminDashboard() {
     updateStatusMutation.mutate({ id, status: newStatus })
   }
 
+  const updatePaymentMutation = useMutation({
+    mutationFn: async ({ id, totalAmount, paidAmount }) => {
+      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/payment`), {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({ totalAmount, paidAmount })
+      })
+      if (!res.ok) throw new Error('Failed to update payment')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['enquiries'] })
+      setPaymentModal({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })
+    }
+  })
+
+  const sendReminderMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/remind`), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      })
+      if (!res.ok) throw new Error('Failed to send reminder')
+      return res.json()
+    },
+    onSuccess: () => {
+      alert('Reminder sent successfully!')
+    }
+  })
+
+  const handlePaymentSubmit = (e) => {
+    e.preventDefault()
+    updatePaymentMutation.mutate({
+      id: paymentModal.enquiry.id,
+      totalAmount: paymentModal.totalAmount === '' ? undefined : Number(paymentModal.totalAmount),
+      paidAmount: paymentModal.paidAmount === '' ? undefined : Number(paymentModal.paidAmount)
+    })
+  }
+
+  const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
+
   if (checkingAuth || (auth?.authenticated && loadingEnquiries)) {
     return (
       <div className="pt-32 pb-24 container mx-auto px-4 min-h-screen flex justify-center items-center">
@@ -99,6 +146,7 @@ export default function AdminDashboard() {
                   <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Event Details</th>
+                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Payment</th>
                   <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                 </tr>
               </thead>
@@ -127,6 +175,23 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="py-4 px-6">
+                        <div className="text-xs text-gray-600 mb-1">
+                          Total: {enq.totalAmount !== null ? formatter.format(enq.totalAmount) : 'Not Set'}
+                        </div>
+                        <div className="text-xs text-gray-600 mb-1">
+                          Paid: {formatter.format(enq.paidAmount)}
+                        </div>
+                        <div className="text-xs font-medium mb-2 text-crystal-dark">
+                          Bal: {enq.totalAmount !== null ? formatter.format(enq.totalAmount - enq.paidAmount) : 'N/A'}
+                        </div>
+                        <button 
+                          onClick={() => setPaymentModal({ isOpen: true, enquiry: enq, totalAmount: enq.totalAmount || '', paidAmount: enq.paidAmount || 0 })}
+                          className="text-xs px-3 py-1 border border-crystal-gold text-crystal-gold hover:bg-crystal-gold hover:text-white transition-colors uppercase"
+                        >
+                          Manage
+                        </button>
+                      </td>
+                      <td className="py-4 px-6">
                         <select
                           value={enq.status}
                           onChange={(e) => handleStatusUpdate(enq.id, e.target.value)}
@@ -149,6 +214,69 @@ export default function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {paymentModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-8 max-w-md w-full shadow-2xl border-t-4 border-crystal-gold">
+            <h2 className="text-2xl font-serif text-crystal-blue mb-6">Manage Payment</h2>
+            <div className="mb-6 text-sm text-gray-600">
+              <p><strong>Client:</strong> {paymentModal.enquiry.firstName} {paymentModal.enquiry.lastName}</p>
+              <p><strong>Event:</strong> {paymentModal.enquiry.eventType} at {paymentModal.enquiry.branch}</p>
+            </div>
+            <form onSubmit={handlePaymentSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm text-crystal-dark mb-1">Total Agreed Price (£)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={paymentModal.totalAmount}
+                  onChange={(e) => setPaymentModal({ ...paymentModal, totalAmount: e.target.value })}
+                  className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-crystal-dark mb-1">Amount Paid So Far (£)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={paymentModal.paidAmount}
+                  onChange={(e) => setPaymentModal({ ...paymentModal, paidAmount: e.target.value })}
+                  className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
+                />
+              </div>
+              <div className="pt-4 flex gap-4">
+                <button 
+                  type="button"
+                  onClick={() => setPaymentModal({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })}
+                  className="w-1/2 px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 uppercase tracking-wide text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={updatePaymentMutation.isPending}
+                  className="w-1/2 px-4 py-2 bg-crystal-gold text-white hover:bg-crystal-dark transition-colors uppercase tracking-wide text-sm font-medium disabled:opacity-50"
+                >
+                  {updatePaymentMutation.isPending ? 'Saving...' : 'Save'}
+                </button>
+              </div>
+            </form>
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <button 
+                onClick={() => {
+                  if (window.confirm('Send a payment reminder email to the client?')) {
+                    sendReminderMutation.mutate(paymentModal.enquiry.id)
+                  }
+                }}
+                disabled={sendReminderMutation.isPending || paymentModal.enquiry.totalAmount === null}
+                className="w-full px-4 py-2 border border-crystal-blue text-crystal-blue hover:bg-crystal-blue hover:text-white transition-colors uppercase tracking-wide text-sm font-medium disabled:opacity-50"
+              >
+                {sendReminderMutation.isPending ? 'Sending...' : 'Send Email Reminder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
