@@ -43,7 +43,7 @@ exports.submitEnquiry = async (req, res) => {
       try {
         await resend.emails.send({
           from: 'Crystal Events <onboarding@resend.dev>',
-          to: [adminEmail, email], // Try to send to both
+          to: [adminEmail, email, "info@crystaleventsandmanagement.co.uk"], // Send to admins and the user
           subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
           html: `
             <h2>New Enquiry Received</h2>
