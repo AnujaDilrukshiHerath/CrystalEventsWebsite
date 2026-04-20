@@ -6,6 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
+const dns = require('dns');
+
+// Force IPv4 for DNS resolution to avoid ENETUNREACH errors on IPv6-unsupported networks
+if (dns.setDefaultResultOrder) {
+  dns.setDefaultResultOrder('ipv4first');
+}
 
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/authRoutes');
