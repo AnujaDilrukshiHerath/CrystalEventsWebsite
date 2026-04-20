@@ -180,8 +180,8 @@ exports.sendPaymentReminder = async (req, res) => {
 
       transporter = nodemailer.createTransport({
         host: host,
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
