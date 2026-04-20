@@ -173,8 +173,9 @@ exports.sendPaymentReminder = async (req, res) => {
         secure: process.env.SMTP_SECURE === 'true',
         auth: {
           user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS,
+          pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
+        connectionTimeout: 10000,
       });
     } else {
       const testAccount = await nodemailer.createTestAccount();
