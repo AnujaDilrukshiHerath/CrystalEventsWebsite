@@ -176,6 +176,7 @@ exports.sendPaymentReminder = async (req, res) => {
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
         connectionTimeout: 10000,
+        family: 4,
       });
     } else {
       const testAccount = await nodemailer.createTestAccount();
