@@ -210,6 +210,3 @@ exports.sendPaymentReminder = async (req, res) => {
     res.status(500).json({ message: 'Server error sending reminder' });
   }
 };
-  }
-};
-
