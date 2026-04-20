@@ -14,7 +14,14 @@ async function main() {
   for (const branch of branchesData) {
     await prisma.branch.upsert({
       where: { id: branch.id },
-      update: {},
+      update: {
+        name: branch.name,
+        location: branch.location,
+        description: branch.description,
+        phone: branch.phone,
+        image: branch.image,
+        mapLink: branch.mapLink,
+      },
       create: branch,
     });
   }
@@ -23,7 +30,15 @@ async function main() {
   for (const hall of hallsData) {
     await prisma.hall.upsert({
       where: { id: hall.id },
-      update: {},
+      update: {
+        name: hall.name,
+        branchId: hall.branchId,
+        floor: hall.floor,
+        minCapacity: hall.minCapacity,
+        maxCapacity: hall.maxCapacity,
+        description: hall.description,
+        images: JSON.stringify(hall.images),
+      },
       create: {
         id: hall.id,
         name: hall.name,
@@ -41,7 +56,12 @@ async function main() {
   for (const event of eventsData) {
     await prisma.event.upsert({
       where: { id: event.id },
-      update: {},
+      update: {
+        name: event.name,
+        description: event.description,
+        image: event.image,
+        videoUrl: event.videoUrl,
+      },
       create: event,
     });
   }
@@ -51,7 +71,11 @@ async function main() {
     const cuisine = cateringData[key];
     await prisma.cuisine.upsert({
       where: { id: key },
-      update: {},
+      update: {
+        name: cuisine.name,
+        description: cuisine.description,
+        menu: JSON.stringify(cuisine.menu),
+      },
       create: {
         id: key,
         name: cuisine.name,
