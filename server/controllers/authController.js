@@ -186,7 +186,12 @@ exports.sendPaymentReminder = async (req, res) => {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
-        connectionTimeout: 10000,
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 30000,
+        tls: {
+          rejectUnauthorized: false
+        },
         servername: 'smtp.gmail.com', // Explicitly set servername for SNI
       });
     } else {
