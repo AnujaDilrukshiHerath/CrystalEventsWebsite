@@ -168,15 +168,12 @@ exports.sendPaymentReminder = async (req, res) => {
     let transporter;
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true',
+        service: 'gmail',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
         connectionTimeout: 10000,
-        family: 4,
       });
     } else {
       const testAccount = await nodemailer.createTestAccount();

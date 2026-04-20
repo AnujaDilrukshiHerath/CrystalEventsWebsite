@@ -36,15 +36,12 @@ exports.submitEnquiry = async (req, res) => {
     // Check if real SMTP credentials are provided in .env
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+        service: 'gmail',
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
         connectionTimeout: 10000,
-        family: 4,
       });
     } else {
       // Fallback to Ethereal (Mock service for local testing)
