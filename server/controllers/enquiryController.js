@@ -35,18 +35,27 @@ exports.submitEnquiry = async (req, res) => {
     
     // Check if real SMTP credentials are provided in .env
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      // Pre-resolve hostname to IPv4 address to avoid ENETUNREACH errors on IPv6-unsupported networks
+      let host = process.env.SMTP_HOST;
+      try {
+        const dns = require('dns').promises;
+        const lookup = await dns.lookup(host, { family: 4 });
+        host = lookup.address;
+        console.log(`Resolved ${process.env.SMTP_HOST} to IPv4: ${host}`);
+      } catch (dnsError) {
+        console.error('DNS resolution failed, falling back to hostname:', dnsError);
+      }
+
       transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
+        host: host,
         port: 465,
         secure: true,
-        lookup: (hostname, options, callback) => {
-          require('dns').lookup(hostname, { family: 4 }, callback);
-        },
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : '',
         },
         connectionTimeout: 10000,
+        servername: 'smtp.gmail.com', // Explicitly set servername for SNI
       });
     } else {
       // Fallback to Ethereal (Mock service for local testing)
