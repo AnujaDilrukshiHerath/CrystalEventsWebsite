@@ -8,7 +8,7 @@ export default function Home() {
       <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&q=70&w=1600" 
+            src="/images/hayes/crystal-hayes-front.jpeg" 
             alt="Luxury Event Hall" 
             loading="eager"
             className="w-full h-full object-cover brightness-[0.4]"
