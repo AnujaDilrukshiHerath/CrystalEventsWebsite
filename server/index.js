@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const fs = require('fs');
 const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
@@ -14,7 +15,7 @@ const PORT = process.env.PORT || 5050;
 
 // CORS configuration for separate deployment
 const corsOptions = {
-  origin: process.env.CLIENT_URL || true, // true allows the current origin
+  origin: process.env.CLIENT_URL || true,
   credentials: true,
   optionsSuccessStatus: 200
 };
@@ -32,12 +33,14 @@ app.use(cookieParser());
 app.use('/api', apiRoutes);
 app.use('/api/admin', authRoutes);
 
-// Serve static files in production (if deployed as a single unit)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/dist')));
+// Serve static files in production (only if files exist locally)
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
   
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistPath, 'index.html'));
   });
 }
 
