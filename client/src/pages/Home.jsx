@@ -103,7 +103,7 @@ export default function Home() {
               loop
               poster="/images/hayes/crystal-hayes-front.jpeg"
             >
-              <source src="/videos/Crystal.mp4" type="video/mp4" />
+              <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1776876055/z4imfrongibutcrhxbub.mp4" type="video/mp4" />
               Your browser does not support the video tag.
             </video>
 
