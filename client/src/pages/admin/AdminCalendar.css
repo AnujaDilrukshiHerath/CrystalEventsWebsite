@@ -1,0 +1,103 @@
+/* Custom styling for FullCalendar in the Admin Panel */
+
+.crystal-calendar-container {
+  background: white;
+  padding: 2rem;
+  border-radius: 4px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border-top: 4px solid #D4AF37; /* Crystal Gold */
+}
+
+/* FullCalendar Overrides */
+.fc {
+  font-family: 'Playfair Display', serif;
+}
+
+.fc .fc-toolbar-title {
+  color: #1A2B48; /* Crystal Blue */
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.fc .fc-button-primary {
+  background-color: transparent;
+  border-color: #D4AF37;
+  color: #D4AF37;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  border-radius: 0;
+  transition: all 0.3s ease;
+}
+
+.fc .fc-button-primary:hover {
+  background-color: #D4AF37;
+  border-color: #D4AF37;
+  color: white;
+}
+
+.fc .fc-button-primary:not(:disabled):active, 
+.fc .fc-button-primary:not(:disabled).fc-button-active {
+  background-color: #1A2B48;
+  border-color: #1A2B48;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: #6B7280;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 1rem 0;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #1A2B48;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+}
+
+.fc .fc-day-today {
+  background-color: rgba(212, 175, 55, 0.05) !important;
+}
+
+/* Event Styling */
+.fc-event {
+  cursor: pointer;
+  border: none !important;
+  padding: 2px 4px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+
+.booking-event {
+  background-color: #1A2B48 !important;
+  border-left: 3px solid #D4AF37 !important;
+}
+
+.fc-event-title {
+  font-weight: 500;
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Modal for event details */
+.calendar-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.calendar-detail-modal {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  padding: 2rem;
+  border-top: 4px solid #D4AF37;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}

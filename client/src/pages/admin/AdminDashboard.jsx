@@ -2,19 +2,41 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getApiUrl } from '../../utils/api'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import { 
+  Calendar as CalendarIcon, 
+  ClipboardList, 
+  CheckCircle, 
+  Plus, 
+  Mail, 
+  Trash2, 
+  LogOut,
+  LayoutDashboard,
+  User,
+  Phone,
+  MapPin,
+  Clock,
+  CircleDollarSign,
+  Info
+} from 'lucide-react'
+import './AdminCalendar.css'
 
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [paymentModal, setPaymentModal] = useState({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })
+  const [activeTab, setActiveTab] = useState('enquiries')
+  const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: null, type: 'enquiry' })
+  const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null })
+  const [selectedEvent, setSelectedEvent] = useState(null)
 
+  // Auth Check
   const { data: auth, isLoading: checkingAuth } = useQuery({
     queryKey: ['checkAuth'],
     queryFn: async () => {
       const res = await fetch(getApiUrl('/api/admin/me'), { 
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
       })
       if (!res.ok) throw new Error('Not authenticated')
       return res.json()
@@ -23,26 +45,81 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
-    if (!checkingAuth && !auth?.authenticated) {
-      navigate('/admin/login')
-    }
+    if (!checkingAuth && !auth?.authenticated) navigate('/admin/login')
   }, [auth, checkingAuth, navigate])
 
+  // Queries
   const { data: enquiries, isLoading: loadingEnquiries } = useQuery({
     queryKey: ['enquiries'],
     queryFn: async () => {
       const res = await fetch(getApiUrl('/api/admin/enquiries'), { 
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
       })
-      if (!res.ok) throw new Error('Failed to fetch enquiries')
       return res.json()
     },
     enabled: !!auth?.authenticated
   })
 
-  const updateStatusMutation = useMutation({
+  const { data: bookings, isLoading: loadingBookings } = useQuery({
+    queryKey: ['bookings'],
+    queryFn: async () => {
+      const res = await fetch(getApiUrl('/api/admin/bookings'), { 
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      return res.json()
+    },
+    enabled: !!auth?.authenticated
+  })
+
+  // Mutations
+  const createBookingMutation = useMutation({
+    mutationFn: async (bookingData) => {
+      const res = await fetch(getApiUrl('/api/admin/bookings'), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(bookingData)
+      })
+      if (!res.ok) throw new Error('Failed to create booking')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+      setBookingModal({ isOpen: false, data: null })
+    }
+  })
+
+  const updateBookingMutation = useMutation({
+    mutationFn: async ({ id, ...data }) => {
+      const res = await fetch(getApiUrl(`/api/admin/bookings/${id}`), {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(data)
+      })
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+      setPaymentModal({ isOpen: false, data: null, type: 'booking' })
+    }
+  })
+
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (id) => {
+      await fetch(getApiUrl(`/api/admin/bookings/${id}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] })
+  })
+
+  const updateEnquiryStatusMutation = useMutation({
     mutationFn: async ({ id, status }) => {
       const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/status`), {
         method: 'PATCH',
@@ -52,228 +129,363 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify({ status })
       })
-
-      if (!res.ok) throw new Error('Failed to update status')
       return res.json()
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enquiries'] })
-    }
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enquiries'] })
   })
-
-  const handleStatusUpdate = (id, newStatus) => {
-    updateStatusMutation.mutate({ id, status: newStatus })
-  }
-
-  const updatePaymentMutation = useMutation({
-    mutationFn: async ({ id, totalAmount, paidAmount }) => {
-      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/payment`), {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        },
-        body: JSON.stringify({ totalAmount, paidAmount })
-      })
-      if (!res.ok) throw new Error('Failed to update payment')
-      return res.json()
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['enquiries'] })
-      setPaymentModal({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })
-    }
-  })
-
-  const sendReminderMutation = useMutation({
-    mutationFn: async (id) => {
-      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/remind`), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
-        }
-      })
-      if (!res.ok) throw new Error('Failed to send reminder')
-      return res.json()
-    },
-    onSuccess: () => {
-      alert('Reminder sent successfully!')
-    }
-  })
-
-  const handlePaymentSubmit = (e) => {
-    e.preventDefault()
-    updatePaymentMutation.mutate({
-      id: paymentModal.enquiry.id,
-      totalAmount: paymentModal.totalAmount === '' ? undefined : Number(paymentModal.totalAmount),
-      paidAmount: paymentModal.paidAmount === '' ? undefined : Number(paymentModal.paidAmount)
-    })
-  }
 
   const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
 
-  if (checkingAuth || (auth?.authenticated && loadingEnquiries)) {
+  const handleConvertToBooking = (enq) => {
+    createBookingMutation.mutate({
+      clientName: `${enq.firstName} ${enq.lastName}`,
+      email: enq.email,
+      phone: enq.phone,
+      date: enq.date,
+      branch: enq.branch,
+      hall: enq.hall,
+      eventType: enq.eventType,
+      totalAmount: enq.totalAmount,
+      paidAmount: enq.paidAmount,
+      notes: `Converted from enquiry: ${enq.message || ''}`
+    })
+    updateEnquiryStatusMutation.mutate({ id: enq.id, status: 'reviewed' })
+  }
+
+  if (checkingAuth || !auth?.authenticated) {
     return (
       <div className="pt-32 pb-24 container mx-auto px-4 min-h-screen flex justify-center items-center">
-        <div className="animate-pulse text-crystal-gold text-xl font-serif">Loading Dashboard...</div>
+        <div className="animate-pulse text-crystal-gold text-xl font-serif">Authenticating...</div>
       </div>
     )
   }
 
-  if (!auth?.authenticated) return null;
-
   return (
-    <div className="pt-32 pb-24 container mx-auto px-4 min-h-screen bg-crystal-light">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-serif text-crystal-blue">Enquiries Dashboard</h1>
+    <div className="pt-32 pb-24 min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 max-w-7xl">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+          <div>
+            <h1 className="text-4xl font-serif text-crystal-blue">Management Dashboard</h1>
+            <p className="text-gray-500 mt-2 font-light">Welcome back, {auth.user.email}</p>
+          </div>
           <button 
-            onClick={() => {
-              localStorage.removeItem('adminToken');
-              navigate('/admin/login')
-            }}
-            className="px-6 py-2 border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors text-sm uppercase tracking-wide font-medium"
+            onClick={() => { localStorage.removeItem('adminToken'); navigate('/admin/login') }}
+            className="flex items-center gap-2 px-6 py-2.5 bg-white border border-red-200 text-red-500 hover:bg-red-50 transition-all text-sm uppercase tracking-widest font-medium shadow-sm"
           >
-            Logout
+            <LogOut size={16} /> Logout
           </button>
         </div>
 
-        <div className="bg-white shadow-xl overflow-hidden rounded-sm border-t-4 border-crystal-gold">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-200">
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Date</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Name</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Contact</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Event Details</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Payment</th>
-                  <th className="py-4 px-6 text-sm font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {enquiries?.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="py-8 text-center text-gray-500">No enquiries found.</td>
-                  </tr>
-                ) : (
-                  enquiries?.map(enq => (
-                    <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">
-                        {new Date(enq.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm font-medium text-crystal-dark">{enq.firstName} {enq.lastName}</div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm text-gray-600">{enq.email}</div>
-                        <div className="text-sm text-gray-500">{enq.phone}</div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {enq.branch} - {enq.hall || 'Any'} • {enq.guests} guests • {enq.date}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-xs text-gray-600 mb-1">
-                          Total: {enq.totalAmount !== null ? formatter.format(enq.totalAmount) : 'Not Set'}
-                        </div>
-                        <div className="text-xs text-gray-600 mb-1">
-                          Paid: {formatter.format(enq.paidAmount)}
-                        </div>
-                        <div className="text-xs font-medium mb-2 text-crystal-dark">
-                          Bal: {enq.totalAmount !== null ? formatter.format(enq.totalAmount - enq.paidAmount) : 'N/A'}
-                        </div>
-                        <button 
-                          onClick={() => setPaymentModal({ isOpen: true, enquiry: enq, totalAmount: enq.totalAmount || '', paidAmount: enq.paidAmount || 0 })}
-                          className="text-xs px-3 py-1 border border-crystal-gold text-crystal-gold hover:bg-crystal-gold hover:text-white transition-colors uppercase"
-                        >
-                          Manage
-                        </button>
-                      </td>
-                      <td className="py-4 px-6">
-                        <select
-                          value={enq.status}
-                          onChange={(e) => handleStatusUpdate(enq.id, e.target.value)}
-                          disabled={updateStatusMutation.isPending}
-                          className={`text-xs font-medium uppercase tracking-wider rounded-full px-3 py-1 border-0 focus:ring-2 focus:ring-crystal-gold cursor-pointer transition-colors
-                            ${enq.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                              enq.status === 'contacted' ? 'bg-blue-100 text-blue-800' : 
-                              'bg-green-100 text-green-800'}`}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="reviewed">Reviewed</option>
-                          <option value="contacted">Contacted</option>
-                        </select>
-                      </td>
+        {/* Tabs Navigation */}
+        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200">
+          {[
+            { id: 'enquiries', label: 'Enquiries', icon: Mail },
+            { id: 'bookings', label: 'Confirmed Bookings', icon: CheckCircle },
+            { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-8 py-4 text-sm uppercase tracking-wider font-semibold transition-all border-b-2 ${
+                activeTab === tab.id 
+                ? 'border-crystal-gold text-crystal-blue bg-white' 
+                : 'border-transparent text-gray-400 hover:text-crystal-blue'
+              }`}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab Content */}
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {activeTab === 'enquiries' && (
+            <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-xl font-serif text-crystal-blue">Recent Leads</h2>
+                <span className="text-xs text-gray-400 uppercase tracking-widest">{enquiries?.length || 0} Enquiries</span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {enquiries?.map(enq => (
+                      <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-6 px-6">
+                          <div className="font-semibold text-crystal-dark">{enq.firstName} {enq.lastName}</div>
+                          <div className="text-xs text-gray-500 mt-1 flex flex-col gap-1">
+                            <span className="flex items-center gap-1"><Mail size={12}/> {enq.email}</span>
+                            <span className="flex items-center gap-1"><Phone size={12}/> {enq.phone}</span>
+                          </div>
+                        </td>
+                        <td className="py-6 px-6">
+                          <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
+                          <div className="text-xs text-gray-500 mt-1 uppercase tracking-tighter">
+                            {enq.branch} • {enq.date} • {enq.guests} Guests
+                          </div>
+                        </td>
+                        <td className="py-6 px-6">
+                          <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                            enq.status === 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {enq.status}
+                          </span>
+                        </td>
+                        <td className="py-6 px-6">
+                          <button 
+                            onClick={() => handleConvertToBooking(enq)}
+                            className="flex items-center gap-2 px-4 py-2 bg-crystal-blue text-white text-[10px] uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all"
+                          >
+                            <CheckCircle size={12} /> Confirm Booking
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'bookings' && (
+            <div className="space-y-6">
+              <div className="flex justify-end">
+                <button 
+                  onClick={() => setBookingModal({ isOpen: true, data: null })}
+                  className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
+                >
+                  <Plus size={16} /> Add Manual Booking
+                </button>
+              </div>
+              <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h2 className="text-xl font-serif text-crystal-blue">Confirmed Events</h2>
+                  <span className="text-xs text-gray-400 uppercase tracking-widest">{bookings?.length || 0} Bookings</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event Date</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Payment</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {bookings?.map(booking => (
+                        <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="py-6 px-6 font-medium text-crystal-blue">{booking.date}</td>
+                          <td className="py-6 px-6">
+                            <div className="font-semibold text-crystal-dark">{booking.clientName}</div>
+                            <div className="text-[10px] text-gray-400 uppercase mt-1">{booking.eventType} at {booking.branch}</div>
+                          </td>
+                          <td className="py-6 px-6">
+                            <div className="text-xs text-gray-600">
+                              Bal: <span className="font-bold">{formatter.format((booking.totalAmount || 0) - booking.paidAmount)}</span>
+                            </div>
+                            <div className="w-24 h-1 bg-gray-100 mt-2 overflow-hidden rounded-full">
+                              <div 
+                                className="h-full bg-crystal-gold" 
+                                style={{ width: `${Math.min(100, (booking.paidAmount / (booking.totalAmount || 1)) * 100)}%` }}
+                              />
+                            </div>
+                          </td>
+                          <td className="py-6 px-6 flex gap-3">
+                            <button 
+                              onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
+                              className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
+                            >
+                              <CircleDollarSign size={18} />
+                            </button>
+                            <button 
+                              onClick={() => { if(window.confirm('Delete this booking?')) deleteBookingMutation.mutate(booking.id) }}
+                              className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'calendar' && (
+            <div className="crystal-calendar-container animate-in zoom-in-95 duration-500">
+              <FullCalendar
+                plugins={[dayGridPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                events={bookings?.map(b => ({
+                  id: b.id,
+                  title: `${b.clientName} - ${b.eventType}`,
+                  date: b.date,
+                  extendedProps: b,
+                  className: 'booking-event'
+                }))}
+                eventClick={(info) => setSelectedEvent(info.event.extendedProps)}
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: 'dayGridMonth,dayGridWeek'
+                }}
+                height="auto"
+              />
+            </div>
+          )}
         </div>
       </div>
 
-      {paymentModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 max-w-md w-full shadow-2xl border-t-4 border-crystal-gold">
-            <h2 className="text-2xl font-serif text-crystal-blue mb-6">Manage Payment</h2>
-            <div className="mb-6 text-sm text-gray-600">
-              <p><strong>Client:</strong> {paymentModal.enquiry.firstName} {paymentModal.enquiry.lastName}</p>
-              <p><strong>Event:</strong> {paymentModal.enquiry.eventType} at {paymentModal.enquiry.branch}</p>
-            </div>
-            <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm text-crystal-dark mb-1">Total Agreed Price (£)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={paymentModal.totalAmount}
-                  onChange={(e) => setPaymentModal({ ...paymentModal, totalAmount: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
-                />
+      {/* Manual Booking Modal */}
+      {bookingModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
+            <h2 className="text-3xl font-serif text-crystal-blue mb-8">Manual Booking Entry</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              createBookingMutation.mutate(Object.fromEntries(formData));
+            }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Client Full Name</label>
+                  <input name="clientName" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Date (YYYY-MM-DD)</label>
+                  <input name="date" type="date" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Type</label>
+                  <input name="eventType" required placeholder="e.g. Wedding, Birthday" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                </div>
               </div>
-              <div>
-                <label className="block text-sm text-crystal-dark mb-1">Amount Paid So Far (£)</label>
-                <input 
-                  type="number" 
-                  step="0.01"
-                  value={paymentModal.paidAmount}
-                  onChange={(e) => setPaymentModal({ ...paymentModal, paidAmount: e.target.value })}
-                  className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Branch</label>
+                  <select name="branch" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                    <option>Hayes</option>
+                    <option>Slough</option>
+                    <option>Wembley</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Amount (£)</label>
+                  <input name="totalAmount" type="number" step="0.01" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Paid Amount (£)</label>
+                  <input name="paidAmount" type="number" step="0.01" defaultValue="0" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                </div>
               </div>
-              <div className="pt-4 flex gap-4">
-                <button 
-                  type="button"
-                  onClick={() => setPaymentModal({ isOpen: false, enquiry: null, totalAmount: '', paidAmount: '' })}
-                  className="w-1/2 px-4 py-2 border border-gray-300 text-gray-600 hover:bg-gray-50 uppercase tracking-wide text-sm font-medium"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit"
-                  disabled={updatePaymentMutation.isPending}
-                  className="w-1/2 px-4 py-2 bg-crystal-gold text-white hover:bg-crystal-dark transition-colors uppercase tracking-wide text-sm font-medium disabled:opacity-50"
-                >
-                  {updatePaymentMutation.isPending ? 'Saving...' : 'Save'}
-                </button>
+              <div className="md:col-span-2 pt-8 flex gap-4">
+                <button type="button" onClick={() => setBookingModal({ isOpen: false, data: null })} className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50">Cancel</button>
+                <button type="submit" className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg">Save Booking</button>
               </div>
             </form>
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <button 
-                onClick={() => {
-                  if (window.confirm('Send a payment reminder email to the client?')) {
-                    sendReminderMutation.mutate(paymentModal.enquiry.id)
-                  }
-                }}
-                disabled={sendReminderMutation.isPending || paymentModal.enquiry.totalAmount === null}
-                className="w-full px-4 py-2 border border-crystal-blue text-crystal-blue hover:bg-crystal-blue hover:text-white transition-colors uppercase tracking-wide text-sm font-medium disabled:opacity-50"
-              >
-                {sendReminderMutation.isPending ? 'Sending...' : 'Send Email Reminder'}
-              </button>
+          </div>
+        </div>
+      )}
+
+      {/* Payment/Details Modal */}
+      {paymentModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-md shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
+            <h2 className="text-2xl font-serif text-crystal-blue mb-2">Payment Details</h2>
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">{paymentModal.data.clientName || `${paymentModal.data.firstName} ${paymentModal.data.lastName}`}</p>
+            
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const total = e.target.total.value;
+              const paid = e.target.paid.value;
+              updateBookingMutation.mutate({ id: paymentModal.data.id, totalAmount: total, paidAmount: paid });
+            }} className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Price</label>
+                <input name="total" type="number" step="0.01" defaultValue={paymentModal.data.totalAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none font-bold text-lg" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Paid to Date</label>
+                <input name="paid" type="number" step="0.01" defaultValue={paymentModal.data.paidAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none font-bold text-lg text-green-600" />
+              </div>
+              <div className="pt-4 flex gap-4">
+                <button type="button" onClick={() => setPaymentModal({ isOpen: false, data: null, type: 'booking' })} className="w-1/2 py-3 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-[10px]">Close</button>
+                <button type="submit" className="w-1/2 py-3 bg-crystal-blue text-white uppercase tracking-widest font-bold text-[10px] hover:bg-crystal-dark">Update Payment</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Event Details Modal */}
+      {selectedEvent && (
+        <div className="calendar-detail-overlay" onClick={() => setSelectedEvent(null)}>
+          <div className="calendar-detail-modal" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-3xl font-serif text-crystal-blue">Event Details</h2>
+              <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-red-500 transition-colors"><Trash2 size={24}/></button>
             </div>
+            
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 text-gray-700">
+                <div className="w-10 h-10 bg-gold-50 rounded-full flex items-center justify-center text-crystal-gold"><User size={20}/></div>
+                <div>
+                  <div className="text-sm font-bold">{selectedEvent.clientName}</div>
+                  <div className="text-xs text-gray-500 uppercase">{selectedEvent.eventType}</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> Branch</div>
+                  <div className="text-sm font-semibold">{selectedEvent.branch}</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Clock size={12}/> Date</div>
+                  <div className="text-sm font-semibold">{selectedEvent.date}</div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-100 pt-6">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-bold text-gray-400 uppercase">Payment Progress</span>
+                  <span className="text-xs font-bold text-crystal-gold">{Math.round((selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100)}%</span>
+                </div>
+                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-crystal-gold transition-all duration-1000" style={{ width: `${(selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100}%` }} />
+                </div>
+                <div className="flex justify-between mt-3">
+                  <div className="text-[10px] text-gray-400 uppercase">Paid: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.paidAmount)}</span></div>
+                  <div className="text-[10px] text-gray-400 uppercase">Total: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.totalAmount || 0)}</span></div>
+                </div>
+              </div>
+
+              {selectedEvent.notes && (
+                <div className="bg-blue-50 p-4 rounded border-l-4 border-crystal-blue">
+                  <div className="flex items-center gap-2 text-xs font-bold text-crystal-blue uppercase mb-1"><Info size={12}/> Admin Notes</div>
+                  <div className="text-xs text-gray-600 leading-relaxed italic">"{selectedEvent.notes}"</div>
+                </div>
+              )}
+            </div>
+
+            <button 
+              onClick={() => setSelectedEvent(null)}
+              className="w-full mt-8 py-4 bg-crystal-blue text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark"
+            >
+              Back to Calendar
+            </button>
           </div>
         </div>
       )}
