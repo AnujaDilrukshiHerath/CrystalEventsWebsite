@@ -30,15 +30,7 @@ module.exports = [
     description: "Intimate upstairs hall for smaller ceremonies and get-togethers.",
     images: ["/images/slough/slough-table.jpeg"]
   },
-  {
-    id: "hall-slough-up2",
-    branchId: "branch-slough",
-    name: "Upstairs Hall 2",
-    floor: "Upstairs",
-    maxCapacity: 150,
-    description: "Cozy upstairs space for private events.",
-    images: ["/images/slough/slough-table.jpeg"]
-  },
+
   {
     id: "hall-slough-down",
     branchId: "branch-slough",

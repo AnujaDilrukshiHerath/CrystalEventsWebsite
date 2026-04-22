@@ -14,7 +14,7 @@ module.exports = [
     location: "Slough, Berkshire",
     description: "Versatile halls for mid to large sized gatherings.",
     phone: "020 8054 3343",
-    image: "https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=60&w=800",
+    image: "/images/slough/slough-front.jpeg",
     mapLink: "https://share.google/esppk3WspTTZRUDVk"
   },
   {
