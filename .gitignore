@@ -18,3 +18,4 @@ server/prisma/dev.db-journal
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+client/public/videos/

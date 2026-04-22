@@ -94,15 +94,19 @@ export default function Home() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="relative w-full aspect-video rounded-sm overflow-hidden shadow-2xl border border-crystal-gold/20"
           >
-            <iframe 
-              className="absolute top-0 left-0 w-full h-full"
-              src="https://www.youtube.com/embed/5_UGw7U91OI?si=yzBmpyjD0aoSqqkm&rel=0" 
-              title="Crystal Events Showcase" 
-              frameBorder="0" 
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            ></iframe>
+            <video 
+              className="absolute top-0 left-0 w-full h-full object-cover"
+              controls
+              playsInline
+              muted
+              autoPlay
+              loop
+              poster="/images/hayes/crystal-hayes-front.jpeg"
+            >
+              <source src="/videos/Crystal.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+
           </motion.div>
         </div>
       </section>

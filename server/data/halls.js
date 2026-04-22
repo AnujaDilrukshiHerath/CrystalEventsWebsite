@@ -28,7 +28,7 @@ module.exports = [
     floor: "Upstairs",
     maxCapacity: 150,
     description: "Intimate upstairs hall for smaller ceremonies and get-togethers.",
-    images: ["https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/slough/slough-table.jpeg"]
   },
   {
     id: "hall-slough-up2",
@@ -37,7 +37,7 @@ module.exports = [
     floor: "Upstairs",
     maxCapacity: 150,
     description: "Cozy upstairs space for private events.",
-    images: ["https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/slough/slough-table.jpeg"]
   },
   {
     id: "hall-slough-down",
@@ -47,7 +47,7 @@ module.exports = [
     minCapacity: 200,
     maxCapacity: 600,
     description: "Expansive downstairs hall designed for large weddings and grand receptions.",
-    images: ["https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/slough/slough-front.jpeg"]
   },
   // Wembley
   {
