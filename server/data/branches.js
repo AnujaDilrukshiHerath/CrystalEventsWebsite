@@ -22,7 +22,7 @@ module.exports = [
     name: "Wembley",
     location: "Wembley, London",
     description: "Multiple spaces suited for varied events right in the heart of Wembley.",
-    image: "/images/wembley.jpg",
+    image: "/images/wembley/wembley-front.jpeg",
     mapLink: "https://share.google/dpKlXkZibZGkoGrXt"
   }
 ];
