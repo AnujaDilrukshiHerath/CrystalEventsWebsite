@@ -83,8 +83,10 @@ model Booking {
   eventType   String
   totalAmount Float?
   paidAmount  Float    @default(0)
+  paymentMethod String @default("Bank") // Bank, Cash, Mixed
   notes       String?
   status      String   @default("confirmed") // confirmed, cancelled, completed
+
   createdAt   DateTime @default(now())
 }
 

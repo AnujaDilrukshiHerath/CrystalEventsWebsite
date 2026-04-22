@@ -15,21 +15,31 @@ import {
   LogOut,
   LayoutDashboard,
   User,
-  Phone,
+  Phone as PhoneIcon,
   MapPin,
   Clock,
   CircleDollarSign,
-  Info
+  Info,
+  Banknote,
+  CreditCard
 } from 'lucide-react'
 import './AdminCalendar.css'
 
+const BRANCH_HALLS = {
+  'Hayes': ['Grand Ballroom', 'Diamond Suite'],
+  'Slough': ['Upstairs Hall 1', 'Downstairs Hall'],
+  'Wembley': ['Upstairs Wings Hall', 'Aqua 1', 'Aqua 2', 'Sports Lounge']
+}
+
 export default function AdminDashboard() {
+
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('enquiries')
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: null, type: 'enquiry' })
-  const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null })
+  const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null, selectedBranch: 'Hayes' })
   const [selectedEvent, setSelectedEvent] = useState(null)
+
 
   // Auth Check
   const { data: auth, isLoading: checkingAuth } = useQuery({
@@ -87,7 +97,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] })
-      setBookingModal({ isOpen: false, data: null })
+      setBookingModal({ isOpen: false, data: null, selectedBranch: 'Hayes' })
     }
   })
 
@@ -147,6 +157,7 @@ export default function AdminDashboard() {
       eventType: enq.eventType,
       totalAmount: enq.totalAmount,
       paidAmount: enq.paidAmount,
+      paymentMethod: 'Bank',
       notes: `Converted from enquiry: ${enq.message || ''}`
     })
     updateEnquiryStatusMutation.mutate({ id: enq.id, status: 'reviewed' })
@@ -224,7 +235,7 @@ export default function AdminDashboard() {
                           <div className="font-semibold text-crystal-dark">{enq.firstName} {enq.lastName}</div>
                           <div className="text-xs text-gray-500 mt-1 flex flex-col gap-1">
                             <span className="flex items-center gap-1"><Mail size={12}/> {enq.email}</span>
-                            <span className="flex items-center gap-1"><Phone size={12}/> {enq.phone}</span>
+                            <span className="flex items-center gap-1"><PhoneIcon size={12}/> {enq.phone}</span>
                           </div>
                         </td>
                         <td className="py-6 px-6">
@@ -260,7 +271,7 @@ export default function AdminDashboard() {
             <div className="space-y-6">
               <div className="flex justify-end">
                 <button 
-                  onClick={() => setBookingModal({ isOpen: true, data: null })}
+                  onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
                   className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
                 >
                   <Plus size={16} /> Add Manual Booking
@@ -287,17 +298,19 @@ export default function AdminDashboard() {
                           <td className="py-6 px-6 font-medium text-crystal-blue">{booking.date}</td>
                           <td className="py-6 px-6">
                             <div className="font-semibold text-crystal-dark">{booking.clientName}</div>
-                            <div className="text-[10px] text-gray-400 uppercase mt-1">{booking.eventType} at {booking.branch}</div>
+                            <div className="text-[10px] text-gray-400 uppercase mt-1 flex items-center gap-1">
+                              <PhoneIcon size={10} /> {booking.phone || 'No Phone'}
+                            </div>
+                            <div className="text-[10px] text-gray-500 uppercase mt-1">{booking.eventType} at {booking.branch} ({booking.hall})</div>
                           </td>
                           <td className="py-6 px-6">
-                            <div className="text-xs text-gray-600">
-                              Bal: <span className="font-bold">{formatter.format((booking.totalAmount || 0) - booking.paidAmount)}</span>
+                            <div className="text-xs text-gray-600 flex justify-between">
+                              <span>Balance:</span>
+                              <span className="font-bold text-red-600">{formatter.format((booking.totalAmount || 0) - booking.paidAmount)}</span>
                             </div>
-                            <div className="w-24 h-1 bg-gray-100 mt-2 overflow-hidden rounded-full">
-                              <div 
-                                className="h-full bg-crystal-gold" 
-                                style={{ width: `${Math.min(100, (booking.paidAmount / (booking.totalAmount || 1)) * 100)}%` }}
-                              />
+                            <div className="text-[10px] text-gray-400 mt-1 uppercase flex items-center gap-1">
+                              {booking.paymentMethod === 'Cash' ? <Banknote size={10}/> : <CreditCard size={10}/>}
+                              Method: {booking.paymentMethod || 'Bank'}
                             </div>
                           </td>
                           <td className="py-6 px-6 flex gap-3">
@@ -364,8 +377,12 @@ export default function AdminDashboard() {
                   <input name="clientName" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Date (YYYY-MM-DD)</label>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Date</label>
                   <input name="date" type="date" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Customer Phone</label>
+                  <input name="phone" placeholder="e.g. 07123456789" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Type</label>
@@ -375,12 +392,33 @@ export default function AdminDashboard() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Branch</label>
-                  <select name="branch" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
-                    <option>Hayes</option>
-                    <option>Slough</option>
-                    <option>Wembley</option>
+                  <select 
+                    name="branch" 
+                    value={bookingModal.selectedBranch}
+                    onChange={(e) => setBookingModal({ ...bookingModal, selectedBranch: e.target.value })}
+                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none"
+                  >
+                    <option value="Hayes">Hayes</option>
+                    <option value="Slough">Slough</option>
+                    <option value="Wembley">Wembley</option>
                   </select>
                 </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Hall</label>
+                  <select name="hall" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                    {(BRANCH_HALLS[bookingModal.selectedBranch] || BRANCH_HALLS['Hayes']).map(hall => (
+                      <option key={hall} value={hall}>{hall}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Payment Method</label>
+                  <select name="paymentMethod" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                    <option value="Bank">Bank Transfer</option>
+                    <option value="Cash">Cash</option>
+                  </select>
+                </div>
+
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Amount (£)</label>
                   <input name="totalAmount" type="number" step="0.01" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
@@ -391,7 +429,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
               <div className="md:col-span-2 pt-8 flex gap-4">
-                <button type="button" onClick={() => setBookingModal({ isOpen: false, data: null })} className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={() => setBookingModal({ isOpen: false, data: null, selectedBranch: 'Hayes' })} className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50">Cancel</button>
                 <button type="submit" className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg">Save Booking</button>
               </div>
             </form>
@@ -449,14 +487,26 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> Branch</div>
-                  <div className="text-sm font-semibold">{selectedEvent.branch}</div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> Branch & Hall</div>
+                  <div className="text-sm font-semibold">{selectedEvent.branch} - {selectedEvent.hall}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Clock size={12}/> Date</div>
                   <div className="text-sm font-semibold">{selectedEvent.date}</div>
                 </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><PhoneIcon size={12}/> Contact</div>
+                  <div className="text-sm font-semibold">{selectedEvent.phone || 'N/A'}</div>
+                </div>
+                <div className="bg-gray-50 p-4 rounded">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Banknote size={12}/> Payment Method</div>
+                  <div className="text-sm font-semibold">{selectedEvent.paymentMethod || 'Bank'}</div>
+                </div>
+              </div>
+
 
               <div className="border-t border-gray-100 pt-6">
                 <div className="flex justify-between items-center mb-2">

@@ -31,7 +31,7 @@ exports.getBookings = async (req, res) => {
 exports.createBooking = async (req, res) => {
   try {
     verifyAdmin(req);
-    const { clientName, email, phone, date, branch, hall, eventType, totalAmount, paidAmount, notes } = req.body;
+    const { clientName, email, phone, date, branch, hall, eventType, totalAmount, paidAmount, paymentMethod, notes } = req.body;
     
     const booking = await prisma.booking.create({
       data: {
@@ -44,6 +44,7 @@ exports.createBooking = async (req, res) => {
         eventType,
         totalAmount: totalAmount ? parseFloat(totalAmount) : null,
         paidAmount: paidAmount ? parseFloat(paidAmount) : 0,
+        paymentMethod: paymentMethod || 'Bank',
         notes,
         status: 'confirmed'
       }
@@ -77,13 +78,14 @@ exports.updateBooking = async (req, res) => {
   try {
     verifyAdmin(req);
     const { id } = req.params;
-    const { totalAmount, paidAmount, status, notes } = req.body;
+    const { totalAmount, paidAmount, paymentMethod, status, notes } = req.body;
     
     const booking = await prisma.booking.update({
       where: { id },
       data: {
         totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
         paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined,
+        paymentMethod,
         status,
         notes
       }
