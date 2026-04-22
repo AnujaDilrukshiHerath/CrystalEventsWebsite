@@ -49,7 +49,7 @@ module.exports = [
     floor: "Upstairs",
     maxCapacity: 300,
     description: "A spacious upstairs hall for mid-sized events.",
-    images: ["https://images.unsplash.com/photo-1544148103-0773bf10d330?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/wembley/wembley-wings.jpeg"]
   },
   {
     id: "hall-wembley-aqua1",
@@ -58,7 +58,7 @@ module.exports = [
     floor: "Downstairs",
     maxCapacity: 150,
     description: "Downstairs hall perfect for smaller parties and ceremonies.",
-    images: ["https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/wembley/wembley-aqua1.jpeg"]
   },
   {
     id: "hall-wembley-aqua2",
@@ -67,7 +67,7 @@ module.exports = [
     floor: "Downstairs",
     maxCapacity: 150,
     description: "Elegant downstairs venue for intimate gatherings.",
-    images: ["https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/wembley/wembley-aqua2.jpeg"]
   },
   {
     id: "hall-wembley-sports",
@@ -76,6 +76,6 @@ module.exports = [
     floor: "Ground",
     maxCapacity: 50,
     description: "A relaxed lounge area for small, casual meetups.",
-    images: ["https://images.unsplash.com/photo-1566737236500-c8ac43014a67?auto=format&fit=crop&q=80&w=1000"]
+    images: ["/images/wembley/wembley-sports.jpeg"]
   }
 ];
