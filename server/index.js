@@ -41,21 +41,23 @@ app.use(cookieParser());
 app.use('/api', apiRoutes);
 app.use('/api/admin', authRoutes);
 
-// Serve static files in production (only if files exist locally)
+// Serve static files in production
 const clientDistPath = path.join(__dirname, '../client/dist');
 if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
-  
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(clientDistPath, 'index.html'));
-  });
 }
 
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Crystal Events Server is running' });
 });
+
+// Catch-all for SPA
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // Error handling middleware
 app.use((err, req, res, next) => {
