@@ -98,6 +98,10 @@ export default function AdminDashboard() {
   const filteredBookings = bookings?.filter(b => 
     bookingFilter === 'all' || getMonthYear(b.date) === bookingFilter
   )
+
+  const monthlyOutstanding = filteredBookings?.reduce((sum, b) => 
+    sum + ((b.totalAmount || 0) - b.paidAmount), 0
+  ) || 0
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData) => {
       const res = await fetch(getApiUrl('/api/admin/bookings'), {
@@ -351,12 +355,18 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </div>
-                <button 
-                  onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
-                  className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
-                >
-                  <Plus size={16} /> Add Manual Booking
-                </button>
+                <div className="flex items-center gap-6">
+                  <div className="text-right hidden md:block">
+                    <div className="text-[10px] font-bold uppercase text-gray-400">Monthly Outstanding</div>
+                    <div className="text-xl font-bold text-red-600">{formatter.format(monthlyOutstanding)}</div>
+                  </div>
+                  <button 
+                    onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
+                    className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
+                  >
+                    <Plus size={16} /> Add Manual Booking
+                  </button>
+                </div>
               </div>
               <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
