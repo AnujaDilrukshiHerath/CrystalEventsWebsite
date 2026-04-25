@@ -47,6 +47,16 @@ if (process.env.NODE_ENV === 'production' && fs.existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
 }
 
+// Debug route
+app.get('/debug-dist', (req, res) => {
+  try {
+    const files = fs.readdirSync(clientDistPath);
+    res.json({ path: clientDistPath, exists: fs.existsSync(clientDistPath), files });
+  } catch (e) {
+    res.json({ error: e.message, path: clientDistPath });
+  }
+});
+
 // Health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', message: 'Crystal Events Server is running' });
