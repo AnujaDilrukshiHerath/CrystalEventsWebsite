@@ -82,7 +82,22 @@ export default function AdminDashboard() {
     enabled: !!auth?.authenticated
   })
 
-  // Mutations
+  const [bookingFilter, setBookingFilter] = useState('all')
+
+  // Helper for month formatting
+  const getMonthYear = (dateStr) => {
+    if (!dateStr) return 'Unknown'
+    const date = new Date(dateStr)
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' })
+  }
+
+  // Get unique months from bookings
+  const availableMonths = bookings ? Array.from(new Set(bookings.map(b => getMonthYear(b.date))))
+    .sort((a, b) => new Date(a) - new Date(b)) : []
+
+  const filteredBookings = bookings?.filter(b => 
+    bookingFilter === 'all' || getMonthYear(b.date) === bookingFilter
+  )
   const createBookingMutation = useMutation({
     mutationFn: async (bookingData) => {
       const res = await fetch(getApiUrl('/api/admin/bookings'), {
@@ -322,7 +337,20 @@ export default function AdminDashboard() {
 
           {activeTab === 'bookings' && (
             <div className="space-y-6">
-              <div className="flex justify-end">
+              <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">View Month:</label>
+                  <select 
+                    value={bookingFilter}
+                    onChange={(e) => setBookingFilter(e.target.value)}
+                    className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                  >
+                    <option value="all">All Months</option>
+                    {availableMonths.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
                 <button 
                   onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
                   className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
@@ -332,23 +360,25 @@ export default function AdminDashboard() {
               </div>
               <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-xl font-serif text-crystal-blue">Confirmed Events</h2>
-                  <span className="text-xs text-gray-400 uppercase tracking-widest">{bookings?.length || 0} Bookings</span>
+                  <h2 className="text-xl font-serif text-crystal-blue">
+                    {bookingFilter === 'all' ? 'All Confirmed Events' : `Events in ${bookingFilter}`}
+                  </h2>
+                  <span className="text-xs text-gray-400 uppercase tracking-widest">{filteredBookings?.length || 0} Bookings</span>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event Date</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Date</th>
                         <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
-                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Payment</th>
-                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Outstanding Balance</th>
+                        <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {bookings?.map(booking => (
+                      {filteredBookings?.map(booking => (
                         <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="py-6 px-6 font-medium text-crystal-blue">{booking.date}</td>
+                          <td className="py-6 px-6 font-medium text-crystal-blue whitespace-nowrap">{booking.date}</td>
                           <td className="py-6 px-6">
                             <div className="font-semibold text-crystal-dark">{booking.clientName}</div>
                             <div className="text-[10px] text-gray-400 uppercase mt-1 flex items-center gap-1">
@@ -356,17 +386,16 @@ export default function AdminDashboard() {
                             </div>
                             <div className="text-[10px] text-gray-500 uppercase mt-1">{booking.eventType} at {booking.branch} ({booking.hall})</div>
                           </td>
-                          <td className="py-6 px-6">
-                            <div className="text-xs text-gray-600 flex justify-between">
-                              <span>Balance:</span>
-                              <span className="font-bold text-red-600">{formatter.format((booking.totalAmount || 0) - booking.paidAmount)}</span>
+                          <td className="py-6 px-6 text-right">
+                            <div className="text-sm font-bold text-red-600">
+                              {formatter.format((booking.totalAmount || 0) - booking.paidAmount)}
                             </div>
-                            <div className="text-[10px] text-gray-400 mt-1 uppercase flex items-center gap-1">
-                              {booking.paymentMethod === 'Cash' ? <Banknote size={10}/> : <CreditCard size={10}/>}
-                              Method: {booking.paymentMethod || 'Bank'}
+                            <div className="text-[10px] text-gray-400 mt-1 uppercase">
+                              Total: {formatter.format(booking.totalAmount || 0)}
                             </div>
                           </td>
-                          <td className="py-6 px-6 flex gap-3">
+                          <td className="py-6 px-6">
+                            <div className="flex justify-end gap-2">
                             <button 
                               onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
                               className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
@@ -388,6 +417,7 @@ export default function AdminDashboard() {
                             >
                               <Trash2 size={18} />
                             </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
