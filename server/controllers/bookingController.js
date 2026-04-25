@@ -15,6 +15,7 @@ exports.getBookings = async (req, res) => {
   try {
     verifyAdmin(req);
     const bookings = await prisma.booking.findMany({
+      include: { payments: true },
       orderBy: { date: 'asc' }
     });
     res.json(bookings);
@@ -98,5 +99,42 @@ exports.updateBooking = async (req, res) => {
     }
     console.error('Error updating booking:', error);
     res.status(500).json({ message: 'Error updating booking' });
+  }
+};
+
+// Add a partial payment to a booking
+exports.addPayment = async (req, res) => {
+  try {
+    verifyAdmin(req);
+    const { id } = req.params; // bookingId
+    const { amount, method, notes, date } = req.body;
+
+    const payment = await prisma.payment.create({
+      data: {
+        bookingId: id,
+        amount: parseFloat(amount),
+        method,
+        notes,
+        date: date ? new Date(date) : new Date()
+      }
+    });
+
+    // Update the booking's paidAmount cache
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: { payments: true }
+    });
+
+    const totalPaid = booking.payments.reduce((sum, p) => sum + p.amount, 0);
+
+    await prisma.booking.update({
+      where: { id },
+      data: { paidAmount: totalPaid }
+    });
+
+    res.status(201).json(payment);
+  } catch (error) {
+    console.error('Error adding payment:', error);
+    res.status(500).json({ message: 'Error adding payment' });
   }
 };

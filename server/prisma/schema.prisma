@@ -83,11 +83,23 @@ model Booking {
   hall        String?
   eventType   String
   totalAmount Float?
-  paidAmount  Float    @default(0)
-  paymentMethod String @default("Bank") // Bank, Cash, Mixed
+  paidAmount  Float    @default(0) // This will now represent the sum of all payments
+  paymentMethod String @default("Bank") // Default/Initial method
   notes       String?
   status      String   @default("confirmed") // confirmed, cancelled, completed
 
+  payments    Payment[]
   createdAt   DateTime @default(now())
+}
+
+model Payment {
+  id          String   @id @default(uuid())
+  bookingId   String
+  amount      Float
+  method      String   // Cash, Bank (Hayes), Bank (Wembley)
+  date        DateTime @default(now())
+  notes       String?
+  
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 

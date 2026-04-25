@@ -129,6 +129,25 @@ export default function AdminDashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bookings'] })
   })
 
+  const addPaymentMutation = useMutation({
+    mutationFn: async ({ bookingId, ...paymentData }) => {
+      const res = await fetch(getApiUrl(`/api/admin/bookings/${bookingId}/payments`), {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(paymentData)
+      })
+      if (!res.ok) throw new Error('Failed to add payment')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+      setPaymentModal({ isOpen: false, data: null, type: 'booking' })
+    }
+  })
+
   const updateEnquiryStatusMutation = useMutation({
     mutationFn: async ({ id, status }) => {
       const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}/status`), {
@@ -459,29 +478,87 @@ export default function AdminDashboard() {
       {/* Payment/Details Modal */}
       {paymentModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white w-full max-w-md shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
-            <h2 className="text-2xl font-serif text-crystal-blue mb-2">Payment Details</h2>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">{paymentModal.data.clientName || `${paymentModal.data.firstName} ${paymentModal.data.lastName}`}</p>
-            
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const total = e.target.total.value;
-              const paid = e.target.paid.value;
-              updateBookingMutation.mutate({ id: paymentModal.data.id, totalAmount: total, paidAmount: paid });
-            }} className="space-y-6">
+          <div className="bg-white w-full max-w-2xl shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Price</label>
-                <input name="total" type="number" step="0.01" defaultValue={paymentModal.data.totalAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none font-bold text-lg" />
+                <h2 className="text-2xl font-serif text-crystal-blue mb-1">Payment History & Entry</h2>
+                <p className="text-xs text-gray-400 uppercase tracking-widest">{paymentModal.data.clientName || `${paymentModal.data.firstName} ${paymentModal.data.lastName}`}</p>
               </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Paid to Date</label>
-                <input name="paid" type="number" step="0.01" defaultValue={paymentModal.data.paidAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none font-bold text-lg text-green-600" />
+              <div className="text-right">
+                <div className="text-xs font-bold text-gray-400 uppercase">Outstanding</div>
+                <div className="text-2xl font-bold text-red-600">{formatter.format((paymentModal.data.totalAmount || 0) - paymentModal.data.paidAmount)}</div>
               </div>
-              <div className="pt-4 flex gap-4">
-                <button type="button" onClick={() => setPaymentModal({ isOpen: false, data: null, type: 'booking' })} className="w-1/2 py-3 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-[10px]">Close</button>
-                <button type="submit" className="w-1/2 py-3 bg-crystal-blue text-white uppercase tracking-widest font-bold text-[10px] hover:bg-crystal-dark">Update Payment</button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* History Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider border-b pb-2">Previous Payments</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
+                  {paymentModal.data.payments?.length > 0 ? (
+                    paymentModal.data.payments.map((p, idx) => (
+                      <div key={idx} className="bg-gray-50 p-3 rounded text-xs flex justify-between items-start">
+                        <div>
+                          <div className="font-bold text-crystal-blue">{formatter.format(p.amount)}</div>
+                          <div className="text-gray-400 mt-0.5">{new Date(p.date).toLocaleDateString()} • {p.method}</div>
+                          {p.notes && <div className="text-gray-500 italic mt-1 font-serif">"{p.notes}"</div>}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-xs text-gray-400 italic">No payments recorded yet.</div>
+                  )}
+                </div>
               </div>
-            </form>
+
+              {/* Add New Section */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider border-b pb-2">Add New Payment</h3>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  addPaymentMutation.mutate({
+                    bookingId: paymentModal.data.id,
+                    amount: formData.get('amount'),
+                    method: formData.get('method'),
+                    date: formData.get('date'),
+                    notes: formData.get('notes')
+                  });
+                }} className="space-y-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Amount (£)</label>
+                    <input name="amount" type="number" step="0.01" required className="w-full border-b border-gray-200 py-1.5 outline-none focus:border-crystal-gold text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Payment Method</label>
+                    <select name="method" className="w-full border-b border-gray-200 py-1.5 outline-none focus:border-crystal-gold text-sm">
+                      <option value="Bank (Hayes)">Bank Transfer (Hayes)</option>
+                      <option value="Bank (Wembley)">Bank Transfer (Wembley)</option>
+                      <option value="Cash">Cash</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Payment Date</label>
+                    <input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} className="w-full border-b border-gray-200 py-1.5 outline-none focus:border-crystal-gold text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase text-gray-400 mb-1">Notes</label>
+                    <textarea name="notes" placeholder="e.g. Paid via BTG / Ref: Wedding" className="w-full border border-gray-100 p-2 text-xs outline-none focus:border-crystal-gold h-20 resize-none"></textarea>
+                  </div>
+                  <button type="submit" disabled={addPaymentMutation.isLoading} className="w-full py-3 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-md disabled:opacity-50 transition-all">
+                    {addPaymentMutation.isLoading ? 'Recording...' : 'Record Payment'}
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-6 border-t flex justify-between items-center">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-gray-400 uppercase">Total Agreed:</span>
+                <span className="font-bold text-crystal-blue">{formatter.format(paymentModal.data.totalAmount || 0)}</span>
+              </div>
+              <button type="button" onClick={() => setPaymentModal({ isOpen: false, data: null, type: 'booking' })} className="px-8 py-2 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-[10px] hover:bg-gray-50">Close</button>
+            </div>
           </div>
         </div>
       )}
