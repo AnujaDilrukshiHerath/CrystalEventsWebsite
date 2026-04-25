@@ -205,22 +205,39 @@ exports.sendPaymentReminder = async (req, res) => {
 exports.seedSales = async (req, res) => {
   try {
     const bcrypt = require('bcryptjs');
-    const hashedPassword = await bcrypt.hash('Crystalsales@2310', 10);
-    
+    const adminHashedPassword = await bcrypt.hash('admin123', 10);
+    const adminUser = await prisma.adminUser.upsert({
+      where: { email: 'admin@crystalevents.co.uk' },
+      update: {
+        password: adminHashedPassword,
+        role: 'admin'
+      },
+      create: {
+        email: 'admin@crystalevents.co.uk',
+        password: adminHashedPassword,
+        role: 'admin'
+      }
+    });
+
+    const salesHashedPassword = await bcrypt.hash('Crystalsales@2310', 10);
     const salesUser = await prisma.adminUser.upsert({
       where: { email: 'crystalpayments@icloud.com' },
       update: {
-        password: hashedPassword,
+        password: salesHashedPassword,
         role: 'sales'
       },
       create: {
         email: 'crystalpayments@icloud.com',
-        password: hashedPassword,
+        password: salesHashedPassword,
         role: 'sales'
       }
     });
 
-    res.status(200).json({ message: 'Sales user seeded successfully', email: salesUser.email });
+    res.status(200).json({ 
+      message: 'Database seeded successfully', 
+      admin: adminUser.email,
+      sales: salesUser.email 
+    });
   } catch (error) {
     console.error('Seed error:', error);
     res.status(500).json({ message: 'Error seeding sales user' });
