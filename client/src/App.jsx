@@ -11,6 +11,8 @@ import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
+import SalesLogin from './pages/sales/SalesLogin'
+import SalesDashboard from './pages/sales/SalesDashboard'
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/sales/login" element={<SalesLogin />} />
+            <Route path="/sales/dashboard" element={<SalesDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

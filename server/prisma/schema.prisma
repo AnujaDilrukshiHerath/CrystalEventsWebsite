@@ -67,9 +67,10 @@ model Enquiry {
 }
 
 model AdminUser {
-  id       String @id @default(uuid())
+  id       String @id @default(cuid())
   email    String @unique
   password String
+  role     String @default("admin") // admin, sales
 }
 
 model Booking {

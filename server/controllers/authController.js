@@ -27,7 +27,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: admin.id, email: admin.email }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign({ id: admin.id, email: admin.email, role: admin.role }, JWT_SECRET, { expiresIn: '1d' });
 
     // res.cookie('token', token, {
     //   httpOnly: true,
@@ -37,7 +37,7 @@ exports.login = async (req, res) => {
     // });
 
 
-    res.status(200).json({ message: 'Logged in successfully', token });
+    res.status(200).json({ message: 'Logged in successfully', token, role: admin.role });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -53,7 +53,7 @@ exports.checkAuth = (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.status(200).json({ authenticated: true, user: { email: decoded.email } });
+    res.status(200).json({ authenticated: true, user: { email: decoded.email, role: decoded.role } });
   } catch (error) {
     res.status(401).json({ authenticated: false });
   }
