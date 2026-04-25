@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
@@ -87,7 +87,7 @@ exports.updateEnquiryStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    
+
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
@@ -116,7 +116,7 @@ exports.updatePayment = async (req, res) => {
   try {
     const { id } = req.params;
     const { totalAmount, paidAmount } = req.body;
-    
+
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
@@ -127,7 +127,7 @@ exports.updatePayment = async (req, res) => {
 
     const updatedEnquiry = await prisma.enquiry.update({
       where: { id },
-      data: { 
+      data: {
         totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
         paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined
       }
@@ -143,7 +143,7 @@ exports.updatePayment = async (req, res) => {
 exports.sendPaymentReminder = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
@@ -219,24 +219,24 @@ exports.seedSales = async (req, res) => {
       }
     });
 
-    const salesHashedPassword = await bcrypt.hash('Crystalsales@2310', 10);
+    const salesHashedPassword = await bcrypt.hash('Crystalsales@1810', 10);
     const salesUser = await prisma.adminUser.upsert({
-      where: { email: 'crystalpayments@icloud.com' },
+      where: { email: 'sales@crystalevents.co.uk' },
       update: {
         password: salesHashedPassword,
         role: 'sales'
       },
       create: {
-        email: 'crystalpayments@icloud.com',
+        email: 'sales@crystalevents.co.uk',
         password: salesHashedPassword,
         role: 'sales'
       }
     });
 
-    res.status(200).json({ 
-      message: 'Database seeded successfully', 
+    res.status(200).json({
+      message: 'Database seeded successfully',
       admin: adminUser.email,
-      sales: salesUser.email 
+      sales: salesUser.email
     });
   } catch (error) {
     console.error('Seed error:', error);
@@ -247,7 +247,7 @@ exports.seedSales = async (req, res) => {
 exports.deleteEnquiry = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
     if (!token) {
