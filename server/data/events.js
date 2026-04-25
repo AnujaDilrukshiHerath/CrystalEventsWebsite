@@ -31,6 +31,7 @@ module.exports = [
     id: "event-music-concert",
     name: "Music Concerts",
     description: "Our halls offer excellent acoustics and ample space for stages, making them ideal for music concerts and cultural performances.",
-    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&q=60&w=800"
+    image: "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?auto=format&fit=crop&q=60&w=800",
+    videoUrl: "https://www.youtube.com/embed/27LjOpjF6N4"
   }
 ];
