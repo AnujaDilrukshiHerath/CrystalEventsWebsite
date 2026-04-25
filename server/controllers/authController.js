@@ -96,7 +96,7 @@ exports.updateEnquiryStatus = async (req, res) => {
 
     jwt.verify(token, JWT_SECRET);
 
-    if (!['pending', 'contacted', 'reviewed'].includes(status)) {
+    if (!['pending', 'contacted', 'reviewed', 'not-called'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 

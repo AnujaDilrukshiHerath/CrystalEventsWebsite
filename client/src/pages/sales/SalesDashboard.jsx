@@ -150,6 +150,7 @@ export default function SalesDashboard() {
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Branch</th>
                     </tr>
                   </thead>
@@ -175,6 +176,34 @@ export default function SalesDashboard() {
                           <div className="text-xs text-gray-600 line-clamp-2 italic">
                             {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message</span>}
                           </div>
+                        </td>
+                        <td className="py-6 px-6">
+                          <select 
+                            value={enq.status === 'pending' ? 'not-called' : enq.status}
+                            onChange={async (e) => {
+                              try {
+                                const res = await fetch(getApiUrl(`/api/admin/enquiries/${enq.id}/status`), {
+                                  method: 'PATCH',
+                                  headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}` 
+                                  },
+                                  body: JSON.stringify({ status: e.target.value })
+                                })
+                                if (res.ok) window.location.reload()
+                              } catch (err) {
+                                console.error('Status update error:', err)
+                              }
+                            }}
+                            className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
+                              enq.status === 'contacted' 
+                              ? 'bg-green-50 text-green-600 border-green-200' 
+                              : 'bg-red-50 text-red-600 border-red-200'
+                            }`}
+                          >
+                            <option value="not-called">Not Called</option>
+                            <option value="contacted">Contacted</option>
+                          </select>
                         </td>
                         <td className="py-6 px-6 text-xs font-medium uppercase text-gray-500">
                           {enq.branch}
