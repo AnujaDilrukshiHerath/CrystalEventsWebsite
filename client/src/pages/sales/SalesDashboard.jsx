@@ -149,6 +149,7 @@ export default function SalesDashboard() {
                     <tr>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
+                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
                       <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Branch</th>
                     </tr>
                   </thead>
@@ -157,11 +158,23 @@ export default function SalesDashboard() {
                       <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
                         <td className="py-6 px-6">
                           <div className="font-semibold text-crystal-dark">{enq.firstName} {enq.lastName}</div>
-                          <div className="text-[10px] text-gray-400 mt-1 uppercase">{enq.email}</div>
+                          <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 uppercase">
+                            <Mail size={10} /> {enq.email}
+                          </div>
+                          {enq.phone && (
+                            <div className="flex items-center gap-1 text-[10px] text-crystal-blue mt-0.5 font-bold">
+                              <Phone size={10} /> {enq.phone}
+                            </div>
+                          )}
                         </td>
                         <td className="py-6 px-6">
                           <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
                           <div className="text-[10px] text-gray-400 mt-1">{enq.date} • {enq.guests} Guests</div>
+                        </td>
+                        <td className="py-6 px-6 max-w-xs">
+                          <div className="text-xs text-gray-600 line-clamp-2 italic">
+                            {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message</span>}
+                          </div>
                         </td>
                         <td className="py-6 px-6 text-xs font-medium uppercase text-gray-500">
                           {enq.branch}
