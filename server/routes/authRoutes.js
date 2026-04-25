@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales } = require('../controllers/authController');
+const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales, deleteEnquiry } = require('../controllers/authController');
 const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
 
 const router = express.Router();
@@ -8,6 +8,7 @@ router.post('/login', login);
 router.get('/me', checkAuth);
 router.get('/enquiries', getEnquiries);
 router.patch('/enquiries/:id/status', updateEnquiryStatus);
+router.delete('/enquiries/:id', deleteEnquiry);
 router.patch('/enquiries/:id/payment', updatePayment);
 router.post('/enquiries/:id/remind', sendPaymentReminder);
 

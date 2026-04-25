@@ -144,6 +144,17 @@ export default function AdminDashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enquiries'] })
   })
 
+  const deleteEnquiryMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(getApiUrl(`/api/admin/enquiries/${id}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      if (!res.ok) throw new Error('Failed to delete enquiry')
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enquiries'] })
+  })
+
   const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
 
   const handleConvertToBooking = (enq) => {
@@ -251,12 +262,19 @@ export default function AdminDashboard() {
                             {enq.status}
                           </span>
                         </td>
-                        <td className="py-6 px-6">
+                        <td className="py-6 px-6 flex gap-2">
                           <button 
                             onClick={() => handleConvertToBooking(enq)}
                             className="flex items-center gap-2 px-4 py-2 bg-crystal-blue text-white text-[10px] uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all"
                           >
-                            <CheckCircle size={12} /> Confirm Booking
+                            <CheckCircle size={12} /> Confirm
+                          </button>
+                          <button 
+                            onClick={() => { if(window.confirm('Delete this enquiry?')) deleteEnquiryMutation.mutate(enq.id) }}
+                            className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
+                            title="Delete Enquiry"
+                          >
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>

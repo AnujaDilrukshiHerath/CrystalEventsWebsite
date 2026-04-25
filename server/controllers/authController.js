@@ -243,3 +243,29 @@ exports.seedSales = async (req, res) => {
     res.status(500).json({ message: 'Error seeding sales user' });
   }
 };
+
+exports.deleteEnquiry = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Admins only' });
+    }
+
+    await prisma.enquiry.delete({
+      where: { id }
+    });
+
+    res.status(200).json({ message: 'Enquiry deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting enquiry:', error);
+    res.status(500).json({ message: 'Server error deleting enquiry' });
+  }
+};
