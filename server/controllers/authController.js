@@ -205,7 +205,7 @@ exports.sendPaymentReminder = async (req, res) => {
 exports.seedSales = async (req, res) => {
   try {
     const bcrypt = require('bcryptjs');
-    const adminHashedPassword = await bcrypt.hash('admin123', 10);
+    const adminHashedPassword = await bcrypt.hash('Crystaladmin@2310', 10);
     const adminUser = await prisma.adminUser.upsert({
       where: { email: 'admin@crystalevents.co.uk' },
       update: {
