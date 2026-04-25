@@ -110,6 +110,7 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+      <div className="text-[8px] text-gray-200 text-center pb-4 opacity-10">v1.0.1</div>
     </div>
   )
 }
