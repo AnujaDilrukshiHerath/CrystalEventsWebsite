@@ -255,8 +255,9 @@ exports.deleteEnquiry = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') {
-      return res.status(403).json({ message: 'Forbidden: Admins only' });
+    // Allow both admin and sales to delete for now as requested
+    if (decoded.role !== 'admin' && decoded.role !== 'sales') {
+      return res.status(403).json({ message: 'Forbidden' });
     }
 
     await prisma.enquiry.delete({

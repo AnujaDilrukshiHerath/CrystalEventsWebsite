@@ -152,7 +152,8 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('Failed to delete enquiry')
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enquiries'] })
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['enquiries'] }),
+    onError: (error) => alert(`Error: ${error.message}`)
   })
 
   const formatter = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
