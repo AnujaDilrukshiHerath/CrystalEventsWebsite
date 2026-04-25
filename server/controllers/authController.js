@@ -201,3 +201,28 @@ exports.sendPaymentReminder = async (req, res) => {
     res.status(500).json({ message: 'Server error sending reminder' });
   }
 };
+
+exports.seedSales = async (req, res) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash('Crystalsales@2310', 10);
+    
+    const salesUser = await prisma.adminUser.upsert({
+      where: { email: 'sales@crystalevents.co.uk' },
+      update: {
+        password: hashedPassword,
+        role: 'sales'
+      },
+      create: {
+        email: 'sales@crystalevents.co.uk',
+        password: hashedPassword,
+        role: 'sales'
+      }
+    });
+
+    res.status(200).json({ message: 'Sales user seeded successfully', email: salesUser.email });
+  } catch (error) {
+    console.error('Seed error:', error);
+    res.status(500).json({ message: 'Error seeding sales user' });
+  }
+};

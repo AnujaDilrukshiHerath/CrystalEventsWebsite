@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder } = require('../controllers/authController');
+const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales } = require('../controllers/authController');
 const { getBookings, createBooking, updateBooking, deleteBooking } = require('../controllers/bookingController');
 
 const router = express.Router();
@@ -16,6 +16,9 @@ router.get('/bookings', getBookings);
 router.post('/bookings', createBooking);
 router.patch('/bookings/:id', updateBooking);
 router.delete('/bookings/:id', deleteBooking);
+
+// Emergency Seeding
+router.get('/seed-sales', seedSales);
 
 
 module.exports = router;
