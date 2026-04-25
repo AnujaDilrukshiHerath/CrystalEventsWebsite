@@ -79,11 +79,21 @@ exports.updateBooking = async (req, res) => {
   try {
     verifyAdmin(req);
     const { id } = req.params;
-    const { totalAmount, paidAmount, paymentMethod, status, notes } = req.body;
+    const { 
+      clientName, email, phone, date, branch, hall, eventType, 
+      totalAmount, paidAmount, paymentMethod, status, notes 
+    } = req.body;
     
     const booking = await prisma.booking.update({
       where: { id },
       data: {
+        clientName,
+        email,
+        phone,
+        date,
+        branch,
+        hall,
+        eventType,
         totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
         paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined,
         paymentMethod,
