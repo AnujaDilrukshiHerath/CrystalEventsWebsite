@@ -1,3 +1,4 @@
+// Version: 1.0.1 - Portal Deployment Fix
 const dns = require('dns');
 
 // Force IPv4 for DNS resolution to avoid ENETUNREACH errors on IPv6-unsupported networks
