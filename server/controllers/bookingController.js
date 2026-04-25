@@ -138,3 +138,36 @@ exports.addPayment = async (req, res) => {
     res.status(500).json({ message: 'Error adding payment' });
   }
 };
+
+// Delete a partial payment
+exports.deletePayment = async (req, res) => {
+  try {
+    verifyAdmin(req);
+    const { id } = req.params; // paymentId
+
+    const payment = await prisma.payment.findUnique({ where: { id } });
+    if (!payment) return res.status(404).json({ message: 'Payment not found' });
+
+    const bookingId = payment.bookingId;
+
+    await prisma.payment.delete({ where: { id } });
+
+    // Re-calculate total paid for the booking
+    const booking = await prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { payments: true }
+    });
+
+    const totalPaid = booking.payments.reduce((sum, p) => sum + p.amount, 0);
+
+    await prisma.booking.update({
+      where: { id: bookingId },
+      data: { paidAmount: totalPaid }
+    });
+
+    res.json({ message: 'Payment deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting payment:', error);
+    res.status(500).json({ message: 'Error deleting payment' });
+  }
+};

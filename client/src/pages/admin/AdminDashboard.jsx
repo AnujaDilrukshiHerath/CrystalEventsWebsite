@@ -21,7 +21,8 @@ import {
   CircleDollarSign,
   Info,
   Banknote,
-  CreditCard
+  CreditCard,
+  Edit
 } from 'lucide-react'
 import './AdminCalendar.css'
 
@@ -141,6 +142,20 @@ export default function AdminDashboard() {
       })
       if (!res.ok) throw new Error('Failed to add payment')
       return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+      setPaymentModal({ isOpen: false, data: null, type: 'booking' })
+    }
+  })
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: async (paymentId) => {
+      const res = await fetch(getApiUrl(`/api/admin/payments/${paymentId}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      if (!res.ok) throw new Error('Failed to delete payment')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] })
@@ -355,12 +370,21 @@ export default function AdminDashboard() {
                             <button 
                               onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
                               className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
+                              title="Manage Payments"
                             >
                               <CircleDollarSign size={18} />
                             </button>
                             <button 
+                              onClick={() => setBookingModal({ isOpen: true, data: booking, selectedBranch: booking.branch })}
+                              className="p-2 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
+                              title="Edit Booking"
+                            >
+                              <Edit size={18} />
+                            </button>
+                            <button 
                               onClick={() => { if(window.confirm('Delete this booking?')) deleteBookingMutation.mutate(booking.id) }}
                               className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
+                              title="Delete Booking"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -403,28 +427,34 @@ export default function AdminDashboard() {
       {bookingModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
-            <h2 className="text-3xl font-serif text-crystal-blue mb-8">Manual Booking Entry</h2>
+            <h2 className="text-3xl font-serif text-crystal-blue mb-8">{bookingModal.data ? 'Edit Booking' : 'Manual Booking Entry'}</h2>
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.target);
-              createBookingMutation.mutate(Object.fromEntries(formData));
+              const data = Object.fromEntries(formData);
+              if (bookingModal.data) {
+                updateBookingMutation.mutate({ id: bookingModal.data.id, ...data });
+              } else {
+                createBookingMutation.mutate(data);
+              }
+              setBookingModal({ isOpen: false, data: null, selectedBranch: 'Hayes' });
             }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Client Full Name</label>
-                  <input name="clientName" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                  <input name="clientName" defaultValue={bookingModal.data?.clientName} required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Date</label>
-                  <input name="date" type="date" required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                  <input name="date" type="date" defaultValue={bookingModal.data?.date} required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Customer Phone</label>
-                  <input name="phone" placeholder="e.g. 07123456789" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                  <input name="phone" defaultValue={bookingModal.data?.phone} placeholder="e.g. 07123456789" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Type</label>
-                  <input name="eventType" required placeholder="e.g. Wedding, Birthday" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                  <input name="eventType" defaultValue={bookingModal.data?.eventType} required placeholder="e.g. Wedding, Birthday" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
               </div>
               <div className="space-y-4">
@@ -443,7 +473,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Hall</label>
-                  <select name="hall" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                  <select name="hall" defaultValue={bookingModal.data?.hall} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
                     {(BRANCH_HALLS[bookingModal.selectedBranch] || BRANCH_HALLS['Hayes']).map(hall => (
                       <option key={hall} value={hall}>{hall}</option>
                     ))}
@@ -451,7 +481,7 @@ export default function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Payment Method</label>
-                  <select name="paymentMethod" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                  <select name="paymentMethod" defaultValue={bookingModal.data?.paymentMethod} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
                     <option value="Bank">Bank Transfer</option>
                     <option value="Cash">Cash</option>
                   </select>
@@ -459,11 +489,11 @@ export default function AdminDashboard() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Amount (£)</label>
-                  <input name="totalAmount" type="number" step="0.01" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                  <input name="totalAmount" type="number" step="0.01" defaultValue={bookingModal.data?.totalAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Paid Amount (£)</label>
-                  <input name="paidAmount" type="number" step="0.01" defaultValue="0" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Booking Notes</label>
+                  <textarea name="notes" defaultValue={bookingModal.data?.notes} className="w-full border border-gray-100 p-2 text-xs h-20 outline-none focus:border-crystal-gold" placeholder="Add any specific details here..."></textarea>
                 </div>
               </div>
               <div className="md:col-span-2 pt-8 flex gap-4">
@@ -497,13 +527,20 @@ export default function AdminDashboard() {
                 <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
                   {paymentModal.data.payments?.length > 0 ? (
                     paymentModal.data.payments.map((p, idx) => (
-                      <div key={idx} className="bg-gray-50 p-3 rounded text-xs flex justify-between items-start">
-                        <div>
-                          <div className="font-bold text-crystal-blue">{formatter.format(p.amount)}</div>
-                          <div className="text-gray-400 mt-0.5">{new Date(p.date).toLocaleDateString()} • {p.method}</div>
-                          {p.notes && <div className="text-gray-500 italic mt-1 font-serif">"{p.notes}"</div>}
+                        <div className="flex items-center gap-4">
+                          <div>
+                            <div className="font-bold text-crystal-blue">{formatter.format(p.amount)}</div>
+                            <div className="text-gray-400 mt-0.5">{new Date(p.date).toLocaleDateString()} • {p.method}</div>
+                            {p.notes && <div className="text-gray-500 italic mt-1 font-serif">"{p.notes}"</div>}
+                          </div>
+                          <button 
+                            onClick={() => { if(window.confirm('Delete this payment?')) deletePaymentMutation.mutate(p.id) }}
+                            className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                            title="Delete Payment"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
-                      </div>
                     ))
                   ) : (
                     <div className="text-xs text-gray-400 italic">No payments recorded yet.</div>
