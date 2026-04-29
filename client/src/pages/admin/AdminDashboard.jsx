@@ -323,13 +323,15 @@ export default function AdminDashboard() {
                           >
                             <CheckCircle size={12} /> Confirm
                           </button>
-                          <button 
-                            onClick={() => { if(window.confirm('Delete this enquiry?')) deleteEnquiryMutation.mutate(enq.id) }}
-                            className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
-                            title="Delete Enquiry"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          {auth?.user?.role === 'admin' && (
+                            <button 
+                              onClick={() => { if(window.confirm('Delete this enquiry?')) deleteEnquiryMutation.mutate(enq.id) }}
+                              className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
+                              title="Delete Enquiry"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -360,12 +362,14 @@ export default function AdminDashboard() {
                     <div className="text-[10px] font-bold uppercase text-gray-400">Monthly Outstanding</div>
                     <div className="text-xl font-bold text-red-600">{formatter.format(monthlyOutstanding)}</div>
                   </div>
-                  <button 
-                    onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
-                    className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
-                  >
-                    <Plus size={16} /> Add Manual Booking
-                  </button>
+                  {auth?.user?.role === 'admin' && (
+                    <button 
+                      onClick={() => setBookingModal({ isOpen: true, data: null, selectedBranch: 'Hayes' })}
+                      className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
+                    >
+                      <Plus size={16} /> Add Manual Booking
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
@@ -406,27 +410,31 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-6 px-6">
                             <div className="flex justify-end gap-2">
-                            <button 
-                              onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
-                              className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
-                              title="Manage Payments"
-                            >
-                              <CircleDollarSign size={18} />
-                            </button>
-                            <button 
-                              onClick={() => setBookingModal({ isOpen: true, data: booking, selectedBranch: booking.branch })}
-                              className="p-2 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
-                              title="Edit Booking"
-                            >
-                              <Edit size={18} />
-                            </button>
-                            <button 
-                              onClick={() => { if(window.confirm('Delete this booking?')) deleteBookingMutation.mutate(booking.id) }}
-                              className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
-                              title="Delete Booking"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+                            {auth?.user?.role === 'admin' && (
+                              <>
+                                <button 
+                                  onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
+                                  className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
+                                  title="Manage Payments"
+                                >
+                                  <CircleDollarSign size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => setBookingModal({ isOpen: true, data: booking, selectedBranch: booking.branch })}
+                                  className="p-2 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
+                                  title="Edit Booking"
+                                >
+                                  <Edit size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => { if(window.confirm('Delete this booking?')) deleteBookingMutation.mutate(booking.id) }}
+                                  className="p-2 text-red-400 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete Booking"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </>
+                            )}
                             </div>
                           </td>
                         </tr>
