@@ -24,7 +24,7 @@ module.exports = [
   {
     id: "hall-slough-up1",
     branchId: "branch-slough",
-    name: "Upstairs Hall 1",
+    name: "Upstairs Hall",
     floor: "Upstairs",
     maxCapacity: 150,
     description: "Intimate upstairs hall for smaller ceremonies and get-togethers.",
