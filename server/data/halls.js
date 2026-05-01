@@ -28,7 +28,7 @@ module.exports = [
     floor: "Upstairs",
     maxCapacity: 150,
     description: "Intimate upstairs hall for smaller ceremonies and get-togethers.",
-    images: ["/images/slough/slough-table.jpeg"]
+    images: ["/images/slough/slough_upstairs.jpeg"]
   },
 
   {
@@ -39,7 +39,7 @@ module.exports = [
     minCapacity: 200,
     maxCapacity: 600,
     description: "Expansive downstairs hall designed for large weddings and grand receptions.",
-    images: ["/images/slough/slough-front.jpeg"]
+    images: ["/images/slough/slough_downstairs.jpeg"]
   },
   // Wembley
   {
