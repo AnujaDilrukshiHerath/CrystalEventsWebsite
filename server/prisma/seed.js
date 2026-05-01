@@ -66,6 +66,9 @@ async function main() {
     });
   }
 
+  // Delete old cuisines to prevent stale data
+  await prisma.cuisine.deleteMany({});
+
   // Create catering cuisines
   for (const key of Object.keys(cateringData)) {
     const cuisine = cateringData[key];
@@ -85,17 +88,33 @@ async function main() {
     });
   }
 
-  // Create default admin user
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@crystalevents.co.uk';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'password123';
-  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  // Create Admin User
+  const adminEmail = 'admin@crystalevents.co.uk';
+  const adminPassword = 'Crystaladmin@2310';
+  const adminHashedPassword = await bcrypt.hash(adminPassword, 10);
   
   await prisma.adminUser.upsert({
     where: { email: adminEmail },
-    update: {},
+    update: { password: adminHashedPassword, role: 'admin' },
     create: {
       email: adminEmail,
-      password: hashedPassword,
+      password: adminHashedPassword,
+      role: 'admin'
+    },
+  });
+
+  // Create Sales User
+  const salesEmail = 'sales@crystalevents.co.uk';
+  const salesPassword = 'Crystalsales@1810';
+  const salesHashedPassword = await bcrypt.hash(salesPassword, 10);
+  
+  await prisma.adminUser.upsert({
+    where: { email: salesEmail },
+    update: { password: salesHashedPassword, role: 'sales' },
+    create: {
+      email: salesEmail,
+      password: salesHashedPassword,
+      role: 'sales'
     },
   });
 

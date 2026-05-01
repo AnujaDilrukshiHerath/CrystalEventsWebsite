@@ -1,24 +1,23 @@
 module.exports = {
-  sriLankan: {
-    name: "Authentic Sri Lankan Cuisine",
-    description: "A rich blend of spices and traditional recipes.",
+  veg: {
+    name: "Exquisite Vegetarian Packages",
+    description: "A delightful selection of premium vegetarian dishes tailored for your perfect event.",
     menu: {
-      starters: ["Fish Cutlets", "Mutton Rolls", "Vegetable Patties"],
-      mains: ["Chicken Dry", "Dhal Curry", "Brinjal Moju"],
-      rice: ["Yellow Rice", "String Hoppers", "Lumprais"],
-      desserts: ["Watalappan", "Curd & Treacle", "Fruit Salad"],
-      drinks: ["Falooda", "Iced Milo", "Soft Drinks"]
+      "Welcome Drinks": ["Rose Milk", "Masala Chai", "Nelli Crush", "Crystal Mocktails"],
+      "Starters": ["Veg Roll", "Paruppu Vadai", "Samosa", "Kesari", "Sweet Pongal"],
+      "Main Course": ["Karunai Kilangu Kulambu", "Beans with Jackfruit Seed", "Dhal Curry", "Pumpkin & Cassava Milk Curry", "Chilli Paneer", "Aubergine Sambal", "Rasam"],
+      "Desserts": ["Payasam", "Rasavalli", "Fruit Salad"]
     }
   },
-  indian: {
-    name: "Premium Indian Cuisine",
-    description: "Flavorsome and aromatic dishes from across India.",
+  nonVeg: {
+    name: "Premium Non-Vegetarian Feasts",
+    description: "An exceptional culinary experience featuring a wide array of exquisite non-vegetarian and vegetarian options.",
     menu: {
-      starters: ["Paneer Tikka", "Chicken Samosa", "Aloo Chaat"],
-      mains: ["Butter Chicken", "Lamb Rogan Josh", "Palak Paneer", "Dal Makhani"],
-      rice: ["Biryani", "Jeera Rice", "Naan Bread"],
-      desserts: ["Gulab Jamun", "Rasmalai", "Ice Cream"],
-      drinks: ["Mango Lassi", "Masala Chai", "Soft Drinks"]
+      "Welcome Drinks": ["Crystal Mocktails", "Pina Colada", "Lychee Martini", "Bubble Tea Station"],
+      "Canapés": ["Paani Puri", "Lamb Sliders", "Squid with Salt & Chilli", "Samosa Chaat"],
+      "Starters": ["Chicken 65", "Chilli Prawns", "Mutton Roll", "Lamb Chops Pepper Fry", "Garlic Chilli Mogo (Veg)", "Paneer Tikka (Veg)"],
+      "Main Course": ["Mutton Kotthu Rotti", "Seafood Fried Rice", "Parotta", "Mutton Curry", "Chicken Dry", "King Prawns with Coconut & Mango", "Paneer Butter Masala"],
+      "Desserts": ["Luxury Dessert Table", "Live Rolled Ice-Cream", "Live Waffles", "Live Pancakes", "Live Hoppers"]
     }
   }
 };
