@@ -401,9 +401,13 @@ export default function AdminDashboard() {
                             <div className="text-[10px] text-gray-500 uppercase mt-1">{booking.eventType} at {booking.branch} ({booking.hall})</div>
                           </td>
                           <td className="py-6 px-6 text-right">
-                            <div className="text-sm font-bold text-red-600">
-                              {formatter.format((booking.totalAmount || 0) - booking.paidAmount)}
-                            </div>
+                            {((booking.totalAmount || 0) - booking.paidAmount) <= 0 ? (
+                              <div className="text-sm font-bold text-green-600 uppercase tracking-widest">Fully Paid</div>
+                            ) : (
+                              <div className="text-sm font-bold text-red-600">
+                                {formatter.format((booking.totalAmount || 0) - booking.paidAmount)}
+                              </div>
+                            )}
                             <div className="text-[10px] text-gray-400 mt-1 uppercase">
                               Total: {formatter.format(booking.totalAmount || 0)}
                             </div>
