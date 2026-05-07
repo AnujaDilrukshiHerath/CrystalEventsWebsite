@@ -47,7 +47,7 @@ exports.createBooking = async (req, res) => {
     
     const booking = await prisma.booking.create({
       data: {
-        clientName,
+        clientName: clientName || (branch === 'Outdoor' ? 'Outdoor Event' : 'Unknown Client'),
         email,
         phone,
         date,
@@ -100,7 +100,7 @@ exports.updateBooking = async (req, res) => {
     const booking = await prisma.booking.update({
       where: { id },
       data: {
-        clientName,
+        clientName: clientName || (branch === 'Outdoor' ? 'Outdoor Event' : 'Unknown Client'),
         email,
         phone,
         date,

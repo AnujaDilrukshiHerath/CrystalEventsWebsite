@@ -511,8 +511,8 @@ export default function AdminDashboard() {
             }} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Client Full Name</label>
-                  <input name="clientName" defaultValue={bookingModal.data?.clientName} required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Client Full Name {bookingModal.selectedBranch !== 'Outdoor' && '*'}</label>
+                  <input name="clientName" defaultValue={bookingModal.data?.clientName} required={bookingModal.selectedBranch !== 'Outdoor'} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors" />
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Event Date</label>
