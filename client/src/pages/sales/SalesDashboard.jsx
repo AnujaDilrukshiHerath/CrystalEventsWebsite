@@ -121,10 +121,10 @@ export default function SalesDashboard() {
                 initialView="dayGridMonth"
                 events={bookings?.map(b => ({
                   id: b.id,
-                  title: `${b.eventType} - ${b.branch}`,
+                  title: b.branch === 'Outdoor' ? `${b.eventType} @ ${b.hall}` : `${b.eventType} - ${b.branch}`,
                   date: b.date,
                   extendedProps: b,
-                  className: 'booking-event'
+                  className: b.branch === 'Outdoor' ? 'outdoor-event' : 'booking-event'
                 }))}
                 eventClick={(info) => setSelectedEvent(info.event.extendedProps)}
                 headerToolbar={{
@@ -246,14 +246,21 @@ export default function SalesDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> Branch</div>
-                  <div className="text-sm font-semibold">{selectedEvent.branch} - {selectedEvent.hall}</div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> {selectedEvent.branch === 'Outdoor' ? 'Outdoor Venue' : 'Branch & Hall'}</div>
+                  <div className="text-sm font-semibold">{selectedEvent.branch === 'Outdoor' ? selectedEvent.hall : `${selectedEvent.branch} - ${selectedEvent.hall}`}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Clock size={12}/> Date</div>
-                  <div className="text-sm font-semibold">{selectedEvent.date}</div>
+                  <div className="text-sm font-semibold">{selectedEvent.date} {selectedEvent.timeSlot ? `(${selectedEvent.timeSlot})` : ''}</div>
                 </div>
               </div>
+
+              {selectedEvent.branch === 'Outdoor' && (
+                <div className="bg-gray-50 p-4 rounded">
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><User size={12}/> Guests</div>
+                  <div className="text-sm font-semibold">{selectedEvent.guests || 'N/A'}</div>
+                </div>
+              )}
 
               {selectedEvent.notes && (
                 <div className="bg-blue-50 p-4 rounded border-l-4 border-crystal-blue">
