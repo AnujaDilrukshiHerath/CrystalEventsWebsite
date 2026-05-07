@@ -74,11 +74,21 @@
 .booking-event {
   background-color: #1A2B48 !important;
   border-left: 3px solid #D4AF37 !important;
+  color: white !important;
 }
 
 .outdoor-event {
   background-color: #059669 !important; /* Emerald Green for distinction */
   border-left: 3px solid #10B981 !important;
+  color: white !important;
+}
+
+/* Ensure list view text inherits the white color */
+.fc-list-event.booking-event .fc-list-event-time,
+.fc-list-event.booking-event .fc-list-event-title a,
+.fc-list-event.outdoor-event .fc-list-event-time,
+.fc-list-event.outdoor-event .fc-list-event-title a {
+  color: white !important;
 }
 
 .fc-event-title {
