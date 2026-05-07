@@ -5,6 +5,7 @@ import { getApiUrl } from '../../utils/api'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin from '@fullcalendar/list'
 import { 
   Calendar as CalendarIcon, 
   Mail, 
@@ -117,8 +118,8 @@ export default function SalesDashboard() {
           {activeTab === 'calendar' && (
             <div className="crystal-calendar-container bg-white p-8 shadow-xl border-t-4 border-crystal-blue rounded-sm">
               <FullCalendar
-                plugins={[dayGridPlugin, interactionPlugin]}
-                initialView="dayGridMonth"
+                plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
+                initialView={typeof window !== 'undefined' && window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth'}
                 events={bookings?.map(b => ({
                   id: b.id,
                   title: b.branch === 'Outdoor' ? `${b.eventType} @ ${b.hall}` : `${b.eventType} - ${b.branch}`,
@@ -130,7 +131,18 @@ export default function SalesDashboard() {
                 headerToolbar={{
                   left: 'prev,next today',
                   center: 'title',
-                  right: 'dayGridMonth,dayGridWeek'
+                  right: 'dayGridMonth,listMonth'
+                }}
+                buttonText={{
+                  dayGridMonth: 'Grid',
+                  listMonth: 'List'
+                }}
+                windowResize={(arg) => {
+                  if (window.innerWidth < 768) {
+                    arg.view.calendar.changeView('listMonth')
+                  } else {
+                    arg.view.calendar.changeView('dayGridMonth')
+                  }
                 }}
                 height="auto"
               />
