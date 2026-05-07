@@ -91,6 +91,12 @@
   color: white !important;
 }
 
+/* Prevent hover state from breaking the background and text contrast */
+.fc-list-event.booking-event:hover td,
+.fc-list-event.outdoor-event:hover td {
+  background-color: transparent !important;
+}
+
 .fc-event-title {
   font-weight: 500;
   font-size: 0.75rem;
