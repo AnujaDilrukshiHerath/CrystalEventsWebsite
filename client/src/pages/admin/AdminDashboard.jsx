@@ -475,7 +475,7 @@ export default function AdminDashboard() {
                 initialView="dayGridMonth"
                 events={bookings?.map(b => ({
                   id: b.id,
-                  title: `${b.clientName} - ${b.eventType}`,
+                  title: b.branch === 'Outdoor' ? `${b.eventType} @ ${b.hall}` : `${b.clientName} - ${b.eventType}`,
                   date: b.date,
                   extendedProps: b,
                   className: b.branch === 'Outdoor' ? 'outdoor-event' : 'booking-event'
