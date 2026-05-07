@@ -413,28 +413,34 @@ export default function AdminDashboard() {
                             <div className="text-[10px] text-gray-500 uppercase mt-1">{booking.eventType} at {booking.branch} ({booking.hall})</div>
                           </td>
                           <td className="py-6 px-6 text-right">
-                            {((booking.totalAmount || 0) - booking.paidAmount) <= 0 ? (
+                            {booking.branch === 'Outdoor' ? (
+                              <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">N/A</div>
+                            ) : ((booking.totalAmount || 0) - booking.paidAmount) <= 0 ? (
                               <div className="text-sm font-bold text-green-600 uppercase tracking-widest">Fully Paid</div>
                             ) : (
                               <div className="text-sm font-bold text-red-600">
                                 {formatter.format((booking.totalAmount || 0) - booking.paidAmount)}
                               </div>
                             )}
-                            <div className="text-[10px] text-gray-400 mt-1 uppercase">
-                              Total: {formatter.format(booking.totalAmount || 0)}
-                            </div>
+                            {booking.branch !== 'Outdoor' && (
+                              <div className="text-[10px] text-gray-400 mt-1 uppercase">
+                                Total: {formatter.format(booking.totalAmount || 0)}
+                              </div>
+                            )}
                           </td>
                           <td className="py-6 px-6">
                             <div className="flex justify-end gap-2">
                             {auth?.user?.role === 'admin' && (
                               <>
-                                <button 
-                                  onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
-                                  className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
-                                  title="Manage Payments"
-                                >
-                                  <CircleDollarSign size={18} />
-                                </button>
+                                {booking.branch !== 'Outdoor' && (
+                                  <button 
+                                    onClick={() => setPaymentModal({ isOpen: true, data: booking, type: 'booking' })}
+                                    className="p-2 text-crystal-gold hover:bg-gold-50 rounded transition-colors"
+                                    title="Manage Payments"
+                                  >
+                                    <CircleDollarSign size={18} />
+                                  </button>
+                                )}
                                 <button 
                                   onClick={() => setBookingModal({ isOpen: true, data: booking, selectedBranch: booking.branch })}
                                   className="p-2 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
@@ -472,7 +478,7 @@ export default function AdminDashboard() {
                   title: `${b.clientName} - ${b.eventType}`,
                   date: b.date,
                   extendedProps: b,
-                  className: 'booking-event'
+                  className: b.branch === 'Outdoor' ? 'outdoor-event' : 'booking-event'
                 }))}
                 eventClick={(info) => setSelectedEvent(info.event.extendedProps)}
                 headerToolbar={{
@@ -533,28 +539,53 @@ export default function AdminDashboard() {
                     <option value="Hayes">Hayes</option>
                     <option value="Slough">Slough</option>
                     <option value="Wembley">Wembley</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Hall</label>
-                  <select name="hall" defaultValue={bookingModal.data?.hall} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
-                    {(BRANCH_HALLS[bookingModal.selectedBranch] || BRANCH_HALLS['Hayes']).map(hall => (
-                      <option key={hall} value={hall}>{hall}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Payment Method</label>
-                  <select name="paymentMethod" defaultValue={bookingModal.data?.paymentMethod} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
-                    <option value="Bank">Bank Transfer</option>
-                    <option value="Cash">Cash</option>
+                    <option value="Outdoor">Outdoor</option>
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Amount (£)</label>
-                  <input name="totalAmount" type="number" step="0.01" defaultValue={bookingModal.data?.totalAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
-                </div>
+                {bookingModal.selectedBranch === 'Outdoor' ? (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Outdoor Venue Name</label>
+                      <input name="hall" defaultValue={bookingModal.data?.hall} required placeholder="e.g. Hyde Park" className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Guest Count</label>
+                      <input name="guests" type="number" defaultValue={bookingModal.data?.guests} required className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Time Slot</label>
+                      <select name="timeSlot" defaultValue={bookingModal.data?.timeSlot || 'Evening'} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                        <option value="Morning">Morning</option>
+                        <option value="Evening">Evening</option>
+                        <option value="Full Day">Full Day</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Hall</label>
+                      <select name="hall" defaultValue={bookingModal.data?.hall} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                        {(BRANCH_HALLS[bookingModal.selectedBranch] || BRANCH_HALLS['Hayes']).map(hall => (
+                          <option key={hall} value={hall}>{hall}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Payment Method</label>
+                      <select name="paymentMethod" defaultValue={bookingModal.data?.paymentMethod} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none">
+                        <option value="Bank">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Total Amount (£)</label>
+                      <input name="totalAmount" type="number" step="0.01" defaultValue={bookingModal.data?.totalAmount} className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none" />
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Booking Notes</label>
                   <textarea name="notes" defaultValue={bookingModal.data?.notes} className="w-full border border-gray-100 p-2 text-xs h-20 outline-none focus:border-crystal-gold" placeholder="Add any specific details here..."></textarea>
@@ -684,12 +715,12 @@ export default function AdminDashboard() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> Branch & Hall</div>
-                  <div className="text-sm font-semibold">{selectedEvent.branch} - {selectedEvent.hall}</div>
+                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><MapPin size={12}/> {selectedEvent.branch === 'Outdoor' ? 'Outdoor Venue' : 'Branch & Hall'}</div>
+                  <div className="text-sm font-semibold">{selectedEvent.branch === 'Outdoor' ? selectedEvent.hall : `${selectedEvent.branch} - ${selectedEvent.hall}`}</div>
                 </div>
                 <div className="bg-gray-50 p-4 rounded">
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Clock size={12}/> Date</div>
-                  <div className="text-sm font-semibold">{selectedEvent.date}</div>
+                  <div className="text-sm font-semibold">{selectedEvent.date} {selectedEvent.timeSlot ? `(${selectedEvent.timeSlot})` : ''}</div>
                 </div>
               </div>
 
@@ -698,26 +729,35 @@ export default function AdminDashboard() {
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><PhoneIcon size={12}/> Contact</div>
                   <div className="text-sm font-semibold">{selectedEvent.phone || 'N/A'}</div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Banknote size={12}/> Payment Method</div>
-                  <div className="text-sm font-semibold">{selectedEvent.paymentMethod || 'Bank'}</div>
-                </div>
+                {selectedEvent.branch === 'Outdoor' ? (
+                  <div className="bg-gray-50 p-4 rounded">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><User size={12}/> Guests</div>
+                    <div className="text-sm font-semibold">{selectedEvent.guests || 'N/A'}</div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-4 rounded">
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase mb-1"><Banknote size={12}/> Payment Method</div>
+                    <div className="text-sm font-semibold">{selectedEvent.paymentMethod || 'Bank'}</div>
+                  </div>
+                )}
               </div>
 
 
-              <div className="border-t border-gray-100 pt-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-bold text-gray-400 uppercase">Payment Progress</span>
-                  <span className="text-xs font-bold text-crystal-gold">{Math.round((selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100)}%</span>
+              {selectedEvent.branch !== 'Outdoor' && (
+                <div className="border-t border-gray-100 pt-6">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Payment Progress</span>
+                    <span className="text-xs font-bold text-crystal-gold">{Math.round((selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100)}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-crystal-gold transition-all duration-1000" style={{ width: `${(selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100}%` }} />
+                  </div>
+                  <div className="flex justify-between mt-3">
+                    <div className="text-[10px] text-gray-400 uppercase">Paid: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.paidAmount)}</span></div>
+                    <div className="text-[10px] text-gray-400 uppercase">Total: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.totalAmount || 0)}</span></div>
+                  </div>
                 </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-crystal-gold transition-all duration-1000" style={{ width: `${(selectedEvent.paidAmount / (selectedEvent.totalAmount || 1)) * 100}%` }} />
-                </div>
-                <div className="flex justify-between mt-3">
-                  <div className="text-[10px] text-gray-400 uppercase">Paid: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.paidAmount)}</span></div>
-                  <div className="text-[10px] text-gray-400 uppercase">Total: <span className="text-gray-700 font-bold">{formatter.format(selectedEvent.totalAmount || 0)}</span></div>
-                </div>
-              </div>
+              )}
 
               {selectedEvent.notes && (
                 <div className="bg-blue-50 p-4 rounded border-l-4 border-crystal-blue">

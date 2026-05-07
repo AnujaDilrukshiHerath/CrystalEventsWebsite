@@ -7,13 +7,24 @@ const verifyAdmin = (req) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) throw new Error('Unauthorized');
-  return jwt.verify(token, JWT_SECRET);
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.role !== 'admin') throw new Error('Forbidden');
+  return decoded;
+};
+
+const verifyAuth = (req) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) throw new Error('Unauthorized');
+  const decoded = jwt.verify(token, JWT_SECRET);
+  if (decoded.role !== 'admin' && decoded.role !== 'sales') throw new Error('Forbidden');
+  return decoded;
 };
 
 // Get all confirmed bookings
 exports.getBookings = async (req, res) => {
   try {
-    verifyAdmin(req);
+    verifyAuth(req);
     const bookings = await prisma.booking.findMany({
       include: { payments: true },
       orderBy: { date: 'asc' }
@@ -32,7 +43,7 @@ exports.getBookings = async (req, res) => {
 exports.createBooking = async (req, res) => {
   try {
     verifyAdmin(req);
-    const { clientName, email, phone, date, branch, hall, eventType, totalAmount, paidAmount, paymentMethod, notes } = req.body;
+    const { clientName, email, phone, date, branch, hall, eventType, totalAmount, paidAmount, paymentMethod, notes, guests, timeSlot } = req.body;
     
     const booking = await prisma.booking.create({
       data: {
@@ -43,6 +54,8 @@ exports.createBooking = async (req, res) => {
         branch,
         hall,
         eventType,
+        guests: guests ? parseInt(guests) : null,
+        timeSlot: timeSlot || null,
         totalAmount: totalAmount ? parseFloat(totalAmount) : null,
         paidAmount: paidAmount ? parseFloat(paidAmount) : 0,
         paymentMethod: paymentMethod || 'Bank',
@@ -81,7 +94,7 @@ exports.updateBooking = async (req, res) => {
     const { id } = req.params;
     const { 
       clientName, email, phone, date, branch, hall, eventType, 
-      totalAmount, paidAmount, paymentMethod, status, notes 
+      totalAmount, paidAmount, paymentMethod, status, notes, guests, timeSlot
     } = req.body;
     
     const booking = await prisma.booking.update({
@@ -94,6 +107,8 @@ exports.updateBooking = async (req, res) => {
         branch,
         hall,
         eventType,
+        guests: guests ? parseInt(guests) : null,
+        timeSlot: timeSlot || null,
         totalAmount: totalAmount !== undefined ? parseFloat(totalAmount) : undefined,
         paidAmount: paidAmount !== undefined ? parseFloat(paidAmount) : undefined,
         paymentMethod,

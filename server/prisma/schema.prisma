@@ -82,6 +82,8 @@ model Booking {
   branch      String
   hall        String?
   eventType   String
+  guests      Int?
+  timeSlot    String?
   totalAmount Float?
   paidAmount  Float    @default(0) // This will now represent the sum of all payments
   paymentMethod String @default("Bank") // Default/Initial method

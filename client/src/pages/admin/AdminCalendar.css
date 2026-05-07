@@ -76,6 +76,11 @@
   border-left: 3px solid #D4AF37 !important;
 }
 
+.outdoor-event {
+  background-color: #059669 !important; /* Emerald Green for distinction */
+  border-left: 3px solid #10B981 !important;
+}
+
 .fc-event-title {
   font-weight: 500;
   font-size: 0.75rem;
