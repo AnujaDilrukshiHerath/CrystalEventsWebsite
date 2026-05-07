@@ -308,7 +308,7 @@ export default function AdminDashboard() {
                                   <span className="flex items-center gap-1"><Mail size={12}/> {enq.email}</span>
                                   <span className="flex items-center gap-1"><PhoneIcon size={12}/> {enq.phone}</span>
                                   <span className="flex items-center gap-1 mt-1 text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                    <Clock size={10}/> {new Date(enq.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}
+                                    <Clock size={10}/> {new Date(enq.createdAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/London' })}
                                   </span>
                                 </div>
                               </td>
