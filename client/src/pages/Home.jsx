@@ -6,14 +6,17 @@ export default function Home() {
     <div className="pt-20">
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="/images/hayes/crystal-hayes-front.jpeg" 
-            alt="Luxury Event Hall" 
-            loading="eager"
-            className="w-full h-full object-cover brightness-[0.4]"
-          />
-
+        <div className="absolute inset-0 z-0 bg-black">
+          <video 
+            className="w-full h-full object-cover opacity-40"
+            autoPlay
+            loop
+            muted
+            playsInline
+            poster="/images/hayes/crystal-hayes-front.jpeg"
+          >
+            <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1776876055/z4imfrongibutcrhxbub.mp4" type="video/mp4" />
+          </video>
         </div>
         
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-20">
@@ -69,47 +72,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Video Section */}
-      <section className="py-24 bg-crystal-dark relative">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-5xl font-serif text-crystal-gold mb-6">
-              Experience The Magic
-            </h2>
-            <p className="text-gray-300 font-light max-w-2xl mx-auto">
-              Take a glimpse into the unforgettable moments we create at Crystal Events.
-            </p>
-          </motion.div>
-          
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative w-full aspect-video rounded-sm overflow-hidden shadow-2xl border border-crystal-gold/20"
-          >
-            <video 
-              className="absolute top-0 left-0 w-full h-full object-cover"
-              controls
-              playsInline
-              muted
-              autoPlay
-              loop
-              poster="/images/hayes/crystal-hayes-front.jpeg"
-            >
-              <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1776876055/z4imfrongibutcrhxbub.mp4" type="video/mp4" />
-              Your browser does not support the video tag.
-            </video>
 
-          </motion.div>
-        </div>
-      </section>
       <div className="text-[8px] text-gray-200 text-center pb-4 opacity-10">v1.0.1</div>
     </div>
   )
