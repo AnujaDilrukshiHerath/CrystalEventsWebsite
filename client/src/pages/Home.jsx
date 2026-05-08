@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative h-[55vh] md:h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <video 
             className="w-full h-full object-cover opacity-40"
