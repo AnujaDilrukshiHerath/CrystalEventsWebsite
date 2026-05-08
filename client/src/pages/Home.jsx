@@ -5,7 +5,7 @@ export default function Home() {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative h-[70vh] md:h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[55vh] md:h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <video 
             className="w-full h-full object-cover opacity-40"
@@ -19,21 +19,21 @@ export default function Home() {
           </video>
         </div>
         
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-10 md:mt-20">
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-8 md:mt-20">
           <motion.h1 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="text-5xl md:text-7xl font-serif text-white mb-6 leading-tight"
+            className="text-4xl sm:text-5xl md:text-7xl font-serif text-white mb-4 md:mb-6 leading-tight"
           >
-            Unforgettable Moments in <span className="text-crystal-gold italic">Extraordinary Spaces</span>
+            Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
           </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-300 mb-10 font-light tracking-wide max-w-2xl mx-auto"
+            className="text-sm sm:text-base md:text-xl text-gray-300 mb-6 md:mb-10 font-light tracking-wide max-w-2xl mx-auto px-4"
           >
             London and Berkshire's premier venues for luxury weddings, receptions, and cultural celebrations.
           </motion.p>
@@ -42,7 +42,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center"
           >
             <Link 
               to="/venues"
