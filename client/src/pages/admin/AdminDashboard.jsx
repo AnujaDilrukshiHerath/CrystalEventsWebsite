@@ -300,6 +300,7 @@ export default function AdminDashboard() {
                           <tr>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Actions</th>
                           </tr>
@@ -321,6 +322,11 @@ export default function AdminDashboard() {
                                 <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
                                 <div className="text-xs text-gray-500 mt-1 uppercase tracking-tighter">
                                   {enq.branch} • {enq.date} • {enq.guests} Guests
+                                </div>
+                              </td>
+                              <td className="py-6 px-6 max-w-sm">
+                                <div className="text-xs text-gray-600 italic whitespace-pre-wrap break-words">
+                                  {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message provided.</span>}
                                 </div>
                               </td>
                               <td className="py-6 px-6">

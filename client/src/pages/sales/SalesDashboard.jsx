@@ -178,7 +178,7 @@ export default function SalesDashboard() {
                           <div className="text-[10px] text-gray-400 mt-1">{enq.date} • {enq.guests} Guests</div>
                         </td>
                         <td className="py-6 px-6 max-w-xs">
-                          <div className="text-xs text-gray-600 line-clamp-2 italic">
+                          <div className="text-xs text-gray-600 italic whitespace-pre-wrap break-words">
                             {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message</span>}
                           </div>
                         </td>
