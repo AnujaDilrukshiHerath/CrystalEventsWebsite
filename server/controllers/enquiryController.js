@@ -35,15 +35,18 @@ exports.submitEnquiry = async (req, res) => {
       const { Resend } = require('resend');
       const resend = new Resend(process.env.RESEND_API_KEY);
 
-      // Send confirmation to user and notification to Admin
-      // Note: On the free tier without a custom domain, you can only send to your own email.
-      // We will send both notifications to the admin email for now to ensure they are received.
+      // Determine branch-specific admin email
+      let branchAdminEmail = "info@crystaleventsandmanagement.co.uk";
+      if (preferredBranch === 'Slough') {
+        branchAdminEmail = "Crystalhayesuk1@gmail.com";
+      }
+
       const adminEmail = process.env.ADMIN_EMAIL || "crystalpayments@icloud.com";
 
       try {
         await resend.emails.send({
           from: 'Crystal Events <onboarding@resend.dev>',
-          to: [adminEmail, email, "info@crystaleventsandmanagement.co.uk"], // Send to admins and the user
+          to: [adminEmail, email, branchAdminEmail], // Send to admins, branch, and user
           subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
           html: `
             <h2>New Enquiry Received</h2>
