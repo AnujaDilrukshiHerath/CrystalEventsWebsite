@@ -30,10 +30,17 @@ exports.submitEnquiry = async (req, res) => {
       }
     });
 
-    // 2. Send Emails using Resend
-    if (process.env.RESEND_API_KEY) {
-      const { Resend } = require('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
+    // 2. Send Emails using Nodemailer (SMTP)
+    try {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: process.env.SMTP_PORT || 587,
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      });
 
       // Determine branch-specific admin email
       let branchAdminEmail = "info@crystaleventsandmanagement.co.uk";
@@ -43,34 +50,51 @@ exports.submitEnquiry = async (req, res) => {
 
       const adminEmail = process.env.ADMIN_EMAIL || "crystalpayments@icloud.com";
 
-      try {
-        await resend.emails.send({
-          from: 'Crystal Events <onboarding@resend.dev>',
-          to: [adminEmail, email, branchAdminEmail], // Send to admins, branch, and user
-          subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
-          html: `
-            <h2>New Enquiry Received</h2>
-            <p><b>Name:</b> ${firstName} ${lastName}</p>
-            <p><b>Email:</b> ${email}</p>
-            <p><b>Phone:</b> ${phone}</p>
-            <p><b>Event Type:</b> ${eventType}</p>
-            <p><b>Branch:</b> ${preferredBranch}</p>
-            <p><b>Hall:</b> ${preferredHall}</p>
-            <p><b>Guests:</b> ${estimatedGuestCount}</p>
-            <p><b>Date:</b> ${eventDate}</p>
-            <p><b>Message:</b> ${message}</p>
-            <hr>
-            <p>This is an automated notification from your Crystal Events website.</p>
-          `
-        });
-        console.log("Emails sent successfully via Resend");
-      } catch (sendError) {
-        console.error("Resend error:", sendError);
-        // We don't want to fail the whole request if email fails, 
-        // as the enquiry is already saved in the database.
-      }
-    } else {
-      console.log("No RESEND_API_KEY found. Skipping email.");
+      const mailOptions = {
+        from: `"Crystal Events" <${process.env.SMTP_USER}>`,
+        to: [adminEmail, branchAdminEmail], // Send to admins and branch manager
+        replyTo: email, // If admin replies, it goes to the customer
+        subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
+        html: `
+          <h2>New Enquiry Received</h2>
+          <p><b>Name:</b> ${firstName} ${lastName}</p>
+          <p><b>Email:</b> ${email}</p>
+          <p><b>Phone:</b> ${phone}</p>
+          <p><b>Event Type:</b> ${eventType}</p>
+          <p><b>Branch:</b> ${preferredBranch}</p>
+          <p><b>Hall:</b> ${preferredHall}</p>
+          <p><b>Guests:</b> ${estimatedGuestCount}</p>
+          <p><b>Date:</b> ${eventDate}</p>
+          <p><b>Message:</b> ${message}</p>
+          <hr>
+          <p>This is an automated notification from your Crystal Events website.</p>
+        `
+      };
+
+      await transporter.sendMail(mailOptions);
+
+      // Optional: Send confirmation to the customer
+      const customerMailOptions = {
+        from: `"Crystal Events" <${process.env.SMTP_USER}>`,
+        to: email,
+        subject: `Thank you for your enquiry - Crystal Events`,
+        html: `
+          <h2>Thank you for contacting Crystal Events!</h2>
+          <p>Dear ${firstName},</p>
+          <p>We have received your enquiry for a <b>${eventType}</b> at our <b>${preferredBranch}</b> branch.</p>
+          <p>Our team will review your details and get back to you shortly.</p>
+          <br>
+          <p>Best regards,</p>
+          <p>The Crystal Events Team</p>
+        `
+      };
+      await transporter.sendMail(customerMailOptions);
+
+      console.log("Emails sent successfully via SMTP");
+    } catch (sendError) {
+      console.error("SMTP error:", sendError);
+      // We don't want to fail the whole request if email fails, 
+      // as the enquiry is already saved in the database.
     }
 
     res.status(201).json({ message: "Enquiry submitted successfully", referenceId: enquiry.id });
