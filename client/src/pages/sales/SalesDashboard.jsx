@@ -161,7 +161,8 @@ export default function SalesDashboard() {
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
                             <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
-                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Lead Status</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Booking</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
@@ -188,9 +189,12 @@ export default function SalesDashboard() {
                                 </div>
                               </td>
                               <td className="py-6 px-6">
-                                <select 
-                                  value={enq.status === 'pending' ? 'not-called' : enq.status}
-                                  onChange={async (e) => {
+                                {(() => {
+                                  const parts = (enq.status === 'pending' ? 'not-called' : enq.status).split('::');
+                                  const leadStatus = parts[0] || 'not-called';
+                                  const bookingStatus = parts[1] || 'not-confirmed';
+
+                                  const handleStatusChange = async (newLead, newBooking) => {
                                     try {
                                       const res = await fetch(getApiUrl(`/api/admin/enquiries/${enq.id}/status`), {
                                         method: 'PATCH',
@@ -198,22 +202,70 @@ export default function SalesDashboard() {
                                           'Content-Type': 'application/json',
                                           'Authorization': `Bearer ${localStorage.getItem('adminToken')}` 
                                         },
-                                        body: JSON.stringify({ status: e.target.value })
+                                        body: JSON.stringify({ status: `${newLead}::${newBooking}` })
                                       })
                                       if (res.ok) window.location.reload()
                                     } catch (err) {
                                       console.error('Status update error:', err)
                                     }
-                                  }}
-                                  className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
-                                    enq.status === 'contacted' 
-                                    ? 'bg-green-50 text-green-600 border-green-200' 
-                                    : 'bg-red-50 text-red-600 border-red-200'
-                                  }`}
-                                >
-                                  <option value="not-called">Not Called</option>
-                                  <option value="contacted">Contacted</option>
-                                </select>
+                                  }
+
+                                  return (
+                                    <select 
+                                      value={leadStatus}
+                                      onChange={(e) => handleStatusChange(e.target.value, bookingStatus)}
+                                      className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
+                                        leadStatus === 'not-called' ? 'bg-amber-50 text-amber-600 border-amber-200' :
+                                        leadStatus === 'not-interested' ? 'bg-red-50 text-red-600 border-red-200' :
+                                        'bg-blue-50 text-blue-600 border-blue-200'
+                                      }`}
+                                    >
+                                      <option value="not-called">Not Called</option>
+                                      <option value="contacted">Contacted</option>
+                                      <option value="not-interested">Not Interested</option>
+                                      <option value="appointment">Appointment Fixed</option>
+                                      <option value="appointment-done">Appointment Done</option>
+                                    </select>
+                                  )
+                                })()}
+                              </td>
+                              <td className="py-6 px-6">
+                                {(() => {
+                                  const parts = (enq.status === 'pending' ? 'not-called' : enq.status).split('::');
+                                  const leadStatus = parts[0] || 'not-called';
+                                  const bookingStatus = parts[1] || 'not-confirmed';
+
+                                  const handleStatusChange = async (newLead, newBooking) => {
+                                    try {
+                                      const res = await fetch(getApiUrl(`/api/admin/enquiries/${enq.id}/status`), {
+                                        method: 'PATCH',
+                                        headers: { 
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${localStorage.getItem('adminToken')}` 
+                                        },
+                                        body: JSON.stringify({ status: `${newLead}::${newBooking}` })
+                                      })
+                                      if (res.ok) window.location.reload()
+                                    } catch (err) {
+                                      console.error('Status update error:', err)
+                                    }
+                                  }
+
+                                  return (
+                                    <select 
+                                      value={bookingStatus}
+                                      onChange={(e) => handleStatusChange(leadStatus, e.target.value)}
+                                      className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
+                                        bookingStatus === 'confirmed' 
+                                        ? 'bg-green-50 text-green-600 border-green-200' 
+                                        : 'bg-gray-50 text-gray-500 border-gray-200'
+                                      }`}
+                                    >
+                                      <option value="not-confirmed">Not Confirmed</option>
+                                      <option value="confirmed">Confirmed</option>
+                                    </select>
+                                  )
+                                })()}
                               </td>
                             </tr>
                           ))}
