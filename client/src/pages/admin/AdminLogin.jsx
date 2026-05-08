@@ -23,6 +23,10 @@ export default function AdminLogin() {
       
       if (response.ok) {
         const data = await response.json()
+        if (data.role !== 'admin') {
+          setLoginError('Access Denied: Administrator privileges required.')
+          return
+        }
         localStorage.setItem('adminToken', data.token)
         navigate('/admin/dashboard')
       } else {

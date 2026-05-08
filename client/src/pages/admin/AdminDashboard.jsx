@@ -57,7 +57,11 @@ export default function AdminDashboard() {
   })
 
   useEffect(() => {
-    if (!checkingAuth && !auth?.authenticated) navigate('/admin/login')
+    if (!checkingAuth) {
+      if (!auth?.authenticated || auth?.user?.role !== 'admin') {
+        navigate('/admin/login')
+      }
+    }
   }, [auth, checkingAuth, navigate])
 
   // Queries
