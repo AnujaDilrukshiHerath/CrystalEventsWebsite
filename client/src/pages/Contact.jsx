@@ -2,16 +2,22 @@ import { useForm } from 'react-hook-form'
 import { getApiUrl } from '../utils/api'
 
 export default function Contact() {
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm()
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, watch } = useForm()
+  const eventType = watch('eventType')
 
   const onSubmit = async (data) => {
     try {
+      const submitData = { ...data }
+      if (submitData.eventType === 'Other' && submitData.otherEventType) {
+        submitData.eventType = submitData.otherEventType
+      }
+      
       const response = await fetch(getApiUrl('/api/enquiries'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(submitData),
       })
       
       if (response.ok) {
@@ -71,6 +77,16 @@ export default function Contact() {
                 <option value="Other">Other</option>
               </select>
             </div>
+            {eventType === 'Other' && (
+              <div className="md:col-span-2">
+                <label className="block text-sm text-crystal-dark mb-2">Please specify your event *</label>
+                <input 
+                  {...register('otherEventType', { required: true })} 
+                  className="w-full border border-gray-300 px-4 py-2 focus:outline-none focus:border-crystal-gold"
+                  placeholder="e.g., Birthday Party, Corporate Event"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm text-crystal-dark mb-2">Preferred Branch *</label>
               <select 
