@@ -119,7 +119,7 @@ export default function SalesDashboard() {
             <div className="crystal-calendar-container bg-white p-8 shadow-xl border-t-4 border-crystal-blue rounded-sm">
               <FullCalendar
                 plugins={[dayGridPlugin, interactionPlugin, listPlugin]}
-                initialView={typeof window !== 'undefined' && window.innerWidth < 768 ? 'listMonth' : 'dayGridMonth'}
+                initialView="dayGridMonth"
                 events={bookings?.map(b => ({
                   id: b.id,
                   title: b.branch === 'Outdoor' ? `${b.eventType} @ ${b.hall}` : `${b.clientName} - ${b.eventType} @ ${b.branch} ${b.hall}`,
@@ -136,13 +136,6 @@ export default function SalesDashboard() {
                 buttonText={{
                   dayGridMonth: 'Grid',
                   listMonth: 'List'
-                }}
-                windowResize={(arg) => {
-                  if (window.innerWidth < 768) {
-                    arg.view.calendar.changeView('listMonth')
-                  } else {
-                    arg.view.calendar.changeView('dayGridMonth')
-                  }
                 }}
                 height="auto"
               />
