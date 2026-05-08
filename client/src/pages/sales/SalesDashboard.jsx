@@ -143,81 +143,86 @@ export default function SalesDashboard() {
           )}
 
           {activeTab === 'enquiries' && (
-            <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
-              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                <h2 className="text-xl font-serif text-crystal-blue">Customer Leads</h2>
-                <span className="text-xs text-gray-400 uppercase tracking-widest">{enquiries?.length || 0} Enquiries</span>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
-                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
-                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
-                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
-                      <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Branch</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {enquiries?.map(enq => (
-                      <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="py-6 px-6">
-                          <div className="font-semibold text-crystal-dark">{enq.firstName} {enq.lastName}</div>
-                          <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 uppercase">
-                            <Mail size={10} /> {enq.email}
-                          </div>
-                          {enq.phone && (
-                            <div className="flex items-center gap-1 text-[10px] text-crystal-blue mt-0.5 font-bold">
-                              <Phone size={10} /> {enq.phone}
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-6 px-6">
-                          <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
-                          <div className="text-[10px] text-gray-400 mt-1">{enq.date} • {enq.guests} Guests</div>
-                        </td>
-                        <td className="py-6 px-6 max-w-xs">
-                          <div className="text-xs text-gray-600 italic whitespace-pre-wrap break-words">
-                            {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message</span>}
-                          </div>
-                        </td>
-                        <td className="py-6 px-6">
-                          <select 
-                            value={enq.status === 'pending' ? 'not-called' : enq.status}
-                            onChange={async (e) => {
-                              try {
-                                const res = await fetch(getApiUrl(`/api/admin/enquiries/${enq.id}/status`), {
-                                  method: 'PATCH',
-                                  headers: { 
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('adminToken')}` 
-                                  },
-                                  body: JSON.stringify({ status: e.target.value })
-                                })
-                                if (res.ok) window.location.reload()
-                              } catch (err) {
-                                console.error('Status update error:', err)
-                              }
-                            }}
-                            className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
-                              enq.status === 'contacted' 
-                              ? 'bg-green-50 text-green-600 border-green-200' 
-                              : 'bg-red-50 text-red-600 border-red-200'
-                            }`}
-                          >
-                            <option value="not-called">Not Called</option>
-                            <option value="contacted">Contacted</option>
-                          </select>
-                        </td>
-                        <td className="py-6 px-6 text-xs font-medium uppercase text-gray-500">
-                          {enq.branch}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="space-y-8">
+              {['Wembley', 'Slough', 'Hayes', 'Outdoor'].map(branchName => {
+                const branchEnquiries = enquiries?.filter(e => e.branch === branchName) || [];
+                if (branchEnquiries.length === 0) return null;
+
+                return (
+                  <div key={branchName} className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
+                    <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                      <h2 className="text-xl font-serif text-crystal-blue">{branchName} Leads</h2>
+                      <span className="text-xs text-gray-400 uppercase tracking-widest">{branchEnquiries.length} Enquiries</span>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-white border-b border-gray-100">
+                          <tr>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Client</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Event</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Message</th>
+                            <th className="py-4 px-6 text-xs font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {branchEnquiries.map(enq => (
+                            <tr key={enq.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="py-6 px-6">
+                                <div className="font-semibold text-crystal-dark">{enq.firstName} {enq.lastName}</div>
+                                <div className="flex items-center gap-1 text-[10px] text-gray-400 mt-1 uppercase">
+                                  <Mail size={10} /> {enq.email}
+                                </div>
+                                {enq.phone && (
+                                  <div className="flex items-center gap-1 text-[10px] text-crystal-blue mt-0.5 font-bold">
+                                    <Phone size={10} /> {enq.phone}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-6 px-6">
+                                <div className="text-sm font-medium text-crystal-blue">{enq.eventType}</div>
+                                <div className="text-[10px] text-gray-400 mt-1">{enq.date} • {enq.guests} Guests</div>
+                              </td>
+                              <td className="py-6 px-6 max-w-xs">
+                                <div className="text-xs text-gray-600 italic whitespace-pre-wrap break-words">
+                                  {enq.message ? `"${enq.message}"` : <span className="text-gray-300">No message</span>}
+                                </div>
+                              </td>
+                              <td className="py-6 px-6">
+                                <select 
+                                  value={enq.status === 'pending' ? 'not-called' : enq.status}
+                                  onChange={async (e) => {
+                                    try {
+                                      const res = await fetch(getApiUrl(`/api/admin/enquiries/${enq.id}/status`), {
+                                        method: 'PATCH',
+                                        headers: { 
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${localStorage.getItem('adminToken')}` 
+                                        },
+                                        body: JSON.stringify({ status: e.target.value })
+                                      })
+                                      if (res.ok) window.location.reload()
+                                    } catch (err) {
+                                      console.error('Status update error:', err)
+                                    }
+                                  }}
+                                  className={`text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-full border outline-none cursor-pointer transition-all ${
+                                    enq.status === 'contacted' 
+                                    ? 'bg-green-50 text-green-600 border-green-200' 
+                                    : 'bg-red-50 text-red-600 border-red-200'
+                                  }`}
+                                >
+                                  <option value="not-called">Not Called</option>
+                                  <option value="contacted">Contacted</option>
+                                </select>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
 
