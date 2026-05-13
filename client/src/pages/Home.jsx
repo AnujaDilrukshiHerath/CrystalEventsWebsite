@@ -26,7 +26,7 @@ export default function Home() {
             playsInline={true}
             poster="/images/hayes/crystal-hayes-front.jpeg"
           >
-            <source src="/videos/Crystal.mp4" type="video/mp4" />
+            <source src="/videos/Crystal_h264.mp4" type="video/mp4" />
           </video>
         </div>
         
