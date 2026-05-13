@@ -27,7 +27,11 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const token = jwt.sign({ id: admin.id, email: admin.email, role: admin.role }, JWT_SECRET, { expiresIn: '1d' });
+    const token = jwt.sign(
+      { id: admin.id, email: admin.email, role: admin.role },
+      JWT_SECRET,
+      { expiresIn: '1d' }
+    );
 
     // res.cookie('token', token, {
     //   httpOnly: true,
@@ -96,7 +100,10 @@ exports.updateEnquiryStatus = async (req, res) => {
 
     jwt.verify(token, JWT_SECRET);
 
-    if (!['pending', 'contacted', 'reviewed', 'not-called'].includes(status)) {
+    // Accept composite status like `contacted::confirmed` or simple legacy values
+    const validSimple = ['pending', 'contacted', 'reviewed', 'not-called', 'not-interested', 'appointment', 'appointment-done'];
+    const isComposite = status.includes('::');
+    if (!isComposite && !validSimple.includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
@@ -123,7 +130,10 @@ exports.updatePayment = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
     const updatedEnquiry = await prisma.enquiry.update({
       where: { id },
@@ -150,7 +160,10 @@ exports.sendPaymentReminder = async (req, res) => {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
 
     const enquiry = await prisma.enquiry.findUnique({ where: { id } });
     if (!enquiry) {
@@ -222,21 +235,30 @@ exports.seedSales = async (req, res) => {
     const salesHashedPassword = await bcrypt.hash('Crystalsales@1810', 10);
     const salesUser = await prisma.adminUser.upsert({
       where: { email: 'sales@crystalevents.co.uk' },
-      update: {
-        password: salesHashedPassword,
-        role: 'sales'
-      },
-      create: {
-        email: 'sales@crystalevents.co.uk',
-        password: salesHashedPassword,
-        role: 'sales'
-      }
+      update: { password: salesHashedPassword, role: 'sales' },
+      create: { email: 'sales@crystalevents.co.uk', password: salesHashedPassword, role: 'sales' }
+    });
+
+    const sloughHashedPassword = await bcrypt.hash('CrystalSlough@2025', 10);
+    const sloughUser = await prisma.adminUser.upsert({
+      where: { email: 'slough@crystalevents.co.uk' },
+      update: { password: sloughHashedPassword, role: 'branch-slough' },
+      create: { email: 'slough@crystalevents.co.uk', password: sloughHashedPassword, role: 'branch-slough' }
+    });
+
+    const wembleyHashedPassword = await bcrypt.hash('CrystalWembley@2025', 10);
+    const wembleyUser = await prisma.adminUser.upsert({
+      where: { email: 'wembley@crystalevents.co.uk' },
+      update: { password: wembleyHashedPassword, role: 'branch-wembley' },
+      create: { email: 'wembley@crystalevents.co.uk', password: wembleyHashedPassword, role: 'branch-wembley' }
     });
 
     res.status(200).json({
       message: 'Database seeded successfully',
       admin: adminUser.email,
-      sales: salesUser.email
+      sales: salesUser.email,
+      slough: sloughUser.email,
+      wembley: wembleyUser.email
     });
   } catch (error) {
     console.error('Seed error:', error);
@@ -255,8 +277,7 @@ exports.deleteEnquiry = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, JWT_SECRET);
-    // Allow both admin and sales to delete for now as requested
-    if (decoded.role !== 'admin' && decoded.role !== 'sales') {
+    if (decoded.role !== 'admin') {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
@@ -268,5 +289,71 @@ exports.deleteEnquiry = async (req, res) => {
   } catch (error) {
     console.error('Error deleting enquiry:', error);
     res.status(500).json({ message: 'Server error deleting enquiry' });
+  }
+};
+
+// Branch portal: get only enquiries for this branch
+exports.getBranchEnquiries = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    // role is like 'branch-slough' or 'branch-wembley'
+    if (!decoded.role || !decoded.role.startsWith('branch-')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const branchName = decoded.role.replace('branch-', ''); // 'slough' or 'wembley'
+    // Capitalise to match DB values like 'Slough', 'Wembley'
+    const branchCapitalised = branchName.charAt(0).toUpperCase() + branchName.slice(1);
+
+    const enquiries = await prisma.enquiry.findMany({
+      where: { branch: branchCapitalised },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.status(200).json(enquiries);
+  } catch (error) {
+    console.error('Branch enquiry fetch error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Branch portal: update enquiry status (only their own branch's enquiries)
+exports.updateBranchEnquiryStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Unauthorized' });
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (!decoded.role || !decoded.role.startsWith('branch-')) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const branchName = decoded.role.replace('branch-', '');
+    const branchCapitalised = branchName.charAt(0).toUpperCase() + branchName.slice(1);
+
+    // Verify the enquiry belongs to this branch
+    const enquiry = await prisma.enquiry.findUnique({ where: { id } });
+    if (!enquiry) return res.status(404).json({ message: 'Not found' });
+    if (enquiry.branch !== branchCapitalised) {
+      return res.status(403).json({ message: 'Forbidden: not your branch' });
+    }
+
+    const updated = await prisma.enquiry.update({
+      where: { id },
+      data: { status }
+    });
+
+    res.status(200).json(updated);
+  } catch (error) {
+    console.error('Branch status update error:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };

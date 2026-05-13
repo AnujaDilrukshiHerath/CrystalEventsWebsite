@@ -13,6 +13,8 @@ import AdminLogin from './pages/admin/AdminLogin'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import SalesLogin from './pages/sales/SalesLogin'
 import SalesDashboard from './pages/sales/SalesDashboard'
+import BranchLogin from './pages/branch/BranchLogin'
+import BranchDashboard from './pages/branch/BranchDashboard'
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/sales/login" element={<SalesLogin />} />
             <Route path="/sales/dashboard" element={<SalesDashboard />} />
+            <Route path="/branch/:branch/login" element={<BranchLogin />} />
+            <Route path="/branch/:branch/dashboard" element={<BranchDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

@@ -1,5 +1,5 @@
 const express = require('express');
-const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales, deleteEnquiry } = require('../controllers/authController');
+const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales, deleteEnquiry, getBranchEnquiries, updateBranchEnquiryStatus } = require('../controllers/authController');
 const { getBookings, createBooking, updateBooking, deleteBooking, addPayment, deletePayment } = require('../controllers/bookingController');
 
 const router = express.Router();
@@ -11,6 +11,10 @@ router.patch('/enquiries/:id/status', updateEnquiryStatus);
 router.delete('/enquiries/:id', deleteEnquiry);
 router.patch('/enquiries/:id/payment', updatePayment);
 router.post('/enquiries/:id/remind', sendPaymentReminder);
+
+// Branch portal routes (slough / wembley)
+router.get('/branch/enquiries', getBranchEnquiries);
+router.patch('/branch/enquiries/:id/status', updateBranchEnquiryStatus);
 
 // Bookings
 router.get('/bookings', getBookings);
