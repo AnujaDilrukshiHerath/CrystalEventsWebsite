@@ -1,18 +1,29 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import { useRef, useEffect } from 'react'
 
 export default function Home() {
+  const videoRef = useRef(null)
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(error => {
+        console.error("Video autoplay failed:", error)
+      })
+    }
+  }, [])
   return (
     <div className="pt-20">
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0 bg-black">
           <video 
+            ref={videoRef}
             className="w-full h-full object-cover opacity-40"
-            autoPlay
-            loop
-            muted
-            playsInline
+            autoPlay={true}
+            loop={true}
+            muted={true}
+            playsInline={true}
             poster="/images/hayes/crystal-hayes-front.jpeg"
           >
             <source src="/videos/Crystal.mp4" type="video/mp4" />
