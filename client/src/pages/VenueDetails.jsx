@@ -63,7 +63,7 @@ export default function VenueDetails() {
             <img 
               src={hall.images[0]} 
               alt={hall.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover object-[center_75%]"
             />
           </div>
           {/* Future: Image gallery thumbnails can go here */}
