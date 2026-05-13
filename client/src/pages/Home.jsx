@@ -59,7 +59,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-12 text-4xl sm:text-5xl md:text-7xl font-serif text-white leading-tight"
+            className="mt-12 text-2xl sm:text-3xl md:text-5xl font-serif text-white leading-tight"
           >
             Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
           </motion.h1>
