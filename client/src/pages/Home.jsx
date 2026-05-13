@@ -20,23 +20,9 @@ export default function Home() {
         </div>
         
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-8 md:mt-20">
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-4xl sm:text-5xl md:text-7xl font-serif text-white mb-4 md:mb-6 leading-tight"
-          >
-            Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
-          </motion.h1>
+
           
-          <motion.p 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-sm sm:text-base md:text-xl text-gray-300 mb-6 md:mb-10 font-light tracking-wide max-w-2xl mx-auto px-4"
-          >
-            London and Berkshire's premier venues for luxury weddings, receptions, and cultural celebrations.
-          </motion.p>
+
           
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -56,7 +42,14 @@ export default function Home() {
             >
               Book a Viewing
             </Link>
-          </motion.div>
+          <motion.h1 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="mt-12 text-4xl sm:text-5xl md:text-7xl font-serif text-white leading-tight"
+          >
+            Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
+          </motion.h1>
         </div>
       </section>
 
