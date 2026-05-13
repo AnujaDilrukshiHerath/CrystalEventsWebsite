@@ -15,7 +15,7 @@ export default function Home() {
             playsInline
             poster="/images/hayes/crystal-hayes-front.jpeg"
           >
-            <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1776876055/z4imfrongibutcrhxbub.mp4" type="video/mp4" />
+            <source src="/videos/Crystal.mp4" type="video/mp4" />
           </video>
         </div>
         
