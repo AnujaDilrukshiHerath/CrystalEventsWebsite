@@ -19,7 +19,7 @@ export default function Home() {
         <div className="absolute inset-0 z-0 bg-black">
           <video 
             ref={videoRef}
-            className="w-full h-full object-cover opacity-40"
+            className="w-full h-full object-cover opacity-65"
             autoPlay={true}
             loop={true}
             muted={true}
