@@ -246,7 +246,7 @@ exports.seedSales = async (req, res) => {
       create: { email: 'slough@crystalevents.co.uk', password: sloughHashedPassword, role: 'branch-slough' }
     });
 
-    const wembleyHashedPassword = await bcrypt.hash('CrystalWembley@2025', 10);
+    const wembleyHashedPassword = await bcrypt.hash('Wem@1012', 10);
     const wembleyUser = await prisma.adminUser.upsert({
       where: { email: 'wembley@crystalevents.co.uk' },
       update: { password: wembleyHashedPassword, role: 'branch-wembley' },
