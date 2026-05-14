@@ -23,7 +23,11 @@ import {
   Info,
   Banknote,
   CreditCard,
-  Edit
+  Edit,
+  ImageIcon,
+  Eye,
+  EyeOff,
+  ExternalLink
 } from 'lucide-react'
 import './AdminCalendar.css'
 
@@ -41,6 +45,8 @@ export default function AdminDashboard() {
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: null, type: 'enquiry' })
   const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null, selectedBranch: 'Hayes' })
   const [selectedEvent, setSelectedEvent] = useState(null)
+  const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null })
+  const [galleryFilter, setGalleryFilter] = useState('all')
 
 
   // Auth Check
@@ -85,6 +91,82 @@ export default function AdminDashboard() {
       return res.json()
     },
     enabled: !!auth?.authenticated
+  })
+
+  const { data: galleryImages, isLoading: loadingGallery } = useQuery({
+    queryKey: ['adminGallery'],
+    queryFn: async () => {
+      const res = await fetch(getApiUrl('/api/admin/gallery'), {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      return res.json()
+    },
+    enabled: !!auth?.authenticated
+  })
+
+  const createGalleryMutation = useMutation({
+    mutationFn: async (imageData) => {
+      const res = await fetch(getApiUrl('/api/admin/gallery'), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(imageData)
+      })
+      if (!res.ok) throw new Error('Failed to add image')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+      setGalleryModal({ isOpen: false, data: null })
+    }
+  })
+
+  const updateGalleryMutation = useMutation({
+    mutationFn: async ({ id, ...data }) => {
+      const res = await fetch(getApiUrl(`/api/admin/gallery/${id}`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify(data)
+      })
+      if (!res.ok) throw new Error('Failed to update image')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+      setGalleryModal({ isOpen: false, data: null })
+    }
+  })
+
+  const deleteGalleryMutation = useMutation({
+    mutationFn: async (id) => {
+      const res = await fetch(getApiUrl(`/api/admin/gallery/${id}`), {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('adminToken')}` }
+      })
+      if (!res.ok) throw new Error('Failed to delete image')
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+  })
+
+  const toggleGalleryActiveMutation = useMutation({
+    mutationFn: async ({ id, active }) => {
+      const res = await fetch(getApiUrl(`/api/admin/gallery/${id}`), {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: JSON.stringify({ active })
+      })
+      if (!res.ok) throw new Error('Failed to toggle image')
+      return res.json()
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
   })
 
   const [bookingFilter, setBookingFilter] = useState('all')
@@ -264,7 +346,8 @@ export default function AdminDashboard() {
           {[
             { id: 'enquiries', label: 'Enquiries', icon: Mail },
             { id: 'bookings', label: 'Confirmed Bookings', icon: CheckCircle },
-            { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon }
+            { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon },
+            { id: 'gallery', label: 'Website Images', icon: ImageIcon }
           ].map(tab => (
             <button
               key={tab.id}
@@ -579,6 +662,127 @@ export default function AdminDashboard() {
               />
             </div>
           )}
+
+          {activeTab === 'gallery' && (
+            <div className="space-y-6">
+              {/* Header with Add button and filter */}
+              <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Category:</label>
+                  <select
+                    value={galleryFilter}
+                    onChange={(e) => setGalleryFilter(e.target.value)}
+                    className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                  >
+                    <option value="all">All Categories</option>
+                    {[...new Set(galleryImages?.map(i => i.category) || [])].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right hidden md:block">
+                    <div className="text-[10px] font-bold uppercase text-gray-400">Total Images</div>
+                    <div className="text-xl font-bold text-crystal-blue">{galleryImages?.length || 0}</div>
+                  </div>
+                  <button
+                    onClick={() => setGalleryModal({ isOpen: true, data: null })}
+                    className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
+                  >
+                    <Plus size={16} /> Add Image
+                  </button>
+                </div>
+              </div>
+
+              {/* Image Grid */}
+              <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h2 className="text-xl font-serif text-crystal-blue">Website Gallery Images</h2>
+                  <span className="text-xs text-gray-400 uppercase tracking-widest">
+                    {galleryImages?.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length || 0} Images
+                  </span>
+                </div>
+
+                {loadingGallery ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-pulse text-crystal-gold text-lg font-serif">Loading images...</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
+                    {galleryImages
+                      ?.filter(img => galleryFilter === 'all' || img.category === galleryFilter)
+                      .map(img => (
+                        <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
+                          {/* Image Preview */}
+                          <div className="aspect-square overflow-hidden bg-gray-100">
+                            <img
+                              src={img.url}
+                              alt={img.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
+                            />
+                          </div>
+
+                          {/* Info Overlay */}
+                          <div className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="text-sm font-semibold text-crystal-dark truncate" title={img.title}>{img.title}</h3>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{img.category}</span>
+                              </div>
+                              {!img.active && (
+                                <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-red-50 text-red-500 rounded-full">Hidden</span>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50">
+                              <button
+                                onClick={() => toggleGalleryActiveMutation.mutate({ id: img.id, active: !img.active })}
+                                className={`p-1.5 rounded transition-colors ${img.active ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                                title={img.active ? 'Hide from website' : 'Show on website'}
+                              >
+                                {img.active ? <Eye size={14} /> : <EyeOff size={14} />}
+                              </button>
+                              <button
+                                onClick={() => setGalleryModal({ isOpen: true, data: img })}
+                                className="p-1.5 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
+                                title="Edit Image"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => { if(window.confirm('Delete this image permanently?')) deleteGalleryMutation.mutate(img.id) }}
+                                className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Image"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <a
+                                href={img.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors ml-auto"
+                                title="Open image URL"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {!loadingGallery && (!galleryImages || galleryImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length === 0) && (
+                  <div className="p-16 text-center">
+                    <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
+                    <p className="text-gray-400 text-sm">No images yet. Click "Add Image" to get started.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -862,6 +1066,137 @@ export default function AdminDashboard() {
             >
               Back to Calendar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Gallery Image Add/Edit Modal */}
+      {galleryModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
+            <h2 className="text-3xl font-serif text-crystal-blue mb-8">
+              {galleryModal.data ? 'Edit Image' : 'Add New Image'}
+            </h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const formData = new FormData(e.target);
+              const data = {
+                url: formData.get('url'),
+                title: formData.get('title'),
+                category: formData.get('customCategory') || formData.get('category'),
+                sortOrder: parseInt(formData.get('sortOrder') || '0'),
+                active: formData.get('active') === 'on'
+              };
+              if (galleryModal.data) {
+                updateGalleryMutation.mutate({ id: galleryModal.data.id, ...data });
+              } else {
+                createGalleryMutation.mutate(data);
+              }
+            }} className="space-y-6">
+              {/* Image URL */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Image URL *</label>
+                <input
+                  name="url"
+                  defaultValue={galleryModal.data?.url}
+                  required
+                  placeholder="https://... or /images/gallery/filename.jpeg"
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Paste a Cloudinary URL, Unsplash URL, or local path</p>
+              </div>
+
+              {/* Image Preview */}
+              {galleryModal.data?.url && (
+                <div className="aspect-video overflow-hidden rounded bg-gray-100 border border-gray-200">
+                  <img
+                    src={galleryModal.data.url}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                </div>
+              )}
+
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Title *</label>
+                <input
+                  name="title"
+                  defaultValue={galleryModal.data?.title}
+                  required
+                  placeholder="e.g. Grand Ballroom Setup"
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Category *</label>
+                <select
+                  name="category"
+                  defaultValue={galleryModal.data?.category || 'Venue'}
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                  onChange={(e) => {
+                    const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
+                    if (customInput) customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
+                  }}
+                >
+                  <option value="Venue">Venue</option>
+                  <option value="Event">Event</option>
+                  <option value="Catering">Catering</option>
+                  <option value="Decoration">Decoration</option>
+                  <option value="__custom__">Other (type below)</option>
+                </select>
+                <input
+                  name="customCategory"
+                  placeholder="Type custom category..."
+                  style={{ display: 'none' }}
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
+                />
+              </div>
+
+              {/* Sort Order */}
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Sort Order</label>
+                <input
+                  name="sortOrder"
+                  type="number"
+                  defaultValue={galleryModal.data?.sortOrder || 0}
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Lower numbers appear first on the website</p>
+              </div>
+
+              {/* Active Toggle */}
+              <div className="flex items-center gap-3">
+                <input
+                  name="active"
+                  type="checkbox"
+                  defaultChecked={galleryModal.data?.active !== undefined ? galleryModal.data.active : true}
+                  className="w-4 h-4 accent-crystal-gold"
+                />
+                <label className="text-xs font-bold uppercase text-gray-500">Show on website</label>
+              </div>
+
+              {/* Buttons */}
+              <div className="pt-6 flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setGalleryModal({ isOpen: false, data: null })}
+                  className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createGalleryMutation.isPending || updateGalleryMutation.isPending}
+                  className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg disabled:opacity-50"
+                >
+                  {galleryModal.data ? 'Update Image' : 'Add Image'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -105,3 +105,13 @@ model Payment {
   booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
 
+model GalleryImage {
+  id        String   @id @default(uuid())
+  url       String
+  title     String
+  category  String
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+

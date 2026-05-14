@@ -1,6 +1,7 @@
 const express = require('express');
 const { login, checkAuth, getEnquiries, updateEnquiryStatus, updatePayment, sendPaymentReminder, seedSales, deleteEnquiry, getBranchEnquiries, updateBranchEnquiryStatus } = require('../controllers/authController');
 const { getBookings, createBooking, updateBooking, deleteBooking, addPayment, deletePayment } = require('../controllers/bookingController');
+const { getAdminGallery, createGalleryImage, updateGalleryImage, deleteGalleryImage } = require('../controllers/galleryController');
 
 const router = express.Router();
 
@@ -23,6 +24,12 @@ router.patch('/bookings/:id', updateBooking);
 router.post('/bookings/:id/payments', addPayment);
 router.delete('/payments/:id', deletePayment);
 router.delete('/bookings/:id', deleteBooking);
+
+// Gallery Image Management
+router.get('/gallery', getAdminGallery);
+router.post('/gallery', createGalleryImage);
+router.patch('/gallery/:id', updateGalleryImage);
+router.delete('/gallery/:id', deleteGalleryImage);
 
 // Emergency Seeding
 router.get('/seed-sales', seedSales);

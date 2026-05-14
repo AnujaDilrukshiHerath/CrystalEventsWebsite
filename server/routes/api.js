@@ -21,10 +21,11 @@ router.get('/events', getEvents);
 // Catering
 router.get('/catering', getCatering);
 
-// Gallery
+// Gallery (public - active images only)
 router.get('/gallery', getGallery);
 
 // Enquiries
 router.post('/enquiries', submitEnquiry);
 
 module.exports = router;
+

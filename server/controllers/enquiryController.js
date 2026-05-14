@@ -53,7 +53,7 @@ exports.submitEnquiry = async (req, res) => {
       const mailOptions = {
         from: `"Crystal Events" <${process.env.SMTP_USER}>`,
         to: [adminEmail, branchAdminEmail], // Send to admins and branch manager
-        replyTo: email, // If admin replies, it goes to the customer
+        replyTo: process.env.ADMIN_EMAIL || 'crystalpayments@icloud.com', // Reply goes to business email, not personal SMTP account
         subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
         html: `
           <h2>New Enquiry Received</h2>
