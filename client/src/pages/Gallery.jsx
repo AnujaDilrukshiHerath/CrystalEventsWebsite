@@ -17,6 +17,7 @@ const splitCategory = (category = '') => {
 
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedSubCategory, setSelectedSubCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
     queryFn: async () => {
@@ -25,6 +26,10 @@ export default function Gallery() {
       return res.json()
     }
   })
+  const subCategories = ['all', ...new Set(images
+    ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
+    .map((image) => splitCategory(image.category).subCategory)
+    .filter(Boolean) || [])]
 
   if (isLoading) {
     return (
@@ -52,7 +57,7 @@ export default function Gallery() {
         {['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])].map((category) => (
           <button
             key={category}
-            onClick={() => setSelectedCategory(category)}
+            onClick={() => { setSelectedCategory(category); setSelectedSubCategory('all') }}
             className={`px-5 py-2 text-xs uppercase tracking-widest border transition-all ${
               selectedCategory === category
                 ? 'bg-crystal-blue text-white border-crystal-blue'
@@ -63,10 +68,31 @@ export default function Gallery() {
           </button>
         ))}
       </div>
+      {selectedCategory !== 'all' && (
+        <div className="flex flex-wrap justify-center gap-3 mb-10 -mt-4">
+          {subCategories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedSubCategory(category)}
+              className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${
+                selectedSubCategory === category
+                  ? 'bg-crystal-gold text-crystal-dark border-crystal-gold'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
+              }`}
+            >
+              {category === 'all' ? 'All Subcategories' : category}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {images
-          ?.filter((image) => selectedCategory === 'all' || splitCategory(image.category).mainCategory === selectedCategory)
+          ?.filter((image) => {
+            const parts = splitCategory(image.category)
+            return (selectedCategory === 'all' || parts.mainCategory === selectedCategory)
+              && (selectedSubCategory === 'all' || parts.subCategory === selectedSubCategory)
+          })
           .map((image, index) => (
           <motion.div 
             key={image.id}

@@ -100,7 +100,9 @@ export default function AdminDashboard() {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null, type: 'public' })
   const [galleryFilter, setGalleryFilter] = useState('all')
+  const [gallerySubFilter, setGallerySubFilter] = useState('all')
   const [teamImageFilter, setTeamImageFilter] = useState('all')
+  const [teamImageSubFilter, setTeamImageSubFilter] = useState('all')
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryError, setGalleryError] = useState('')
 
@@ -162,6 +164,16 @@ export default function AdminDashboard() {
 
   const websiteImages = galleryImages?.filter((image) => !isInternalCategory(image.category)) || []
   const teamImages = galleryImages?.filter((image) => isInternalCategory(image.category)) || []
+  const filteredWebsiteImages = websiteImages.filter((image) => {
+    const parts = splitCategory(image.category)
+    return (galleryFilter === 'all' || parts.mainCategory === galleryFilter)
+      && (gallerySubFilter === 'all' || parts.subCategory === gallerySubFilter)
+  })
+  const filteredTeamImages = teamImages.filter((image) => {
+    const parts = splitCategory(image.category)
+    return (teamImageFilter === 'all' || parts.mainCategory === teamImageFilter)
+      && (teamImageSubFilter === 'all' || parts.subCategory === teamImageSubFilter)
+  })
 
   const createGalleryMutation = useMutation({
     mutationFn: async (imageData) => {
@@ -773,7 +785,7 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Category:</label>
                   <select
                     value={galleryFilter}
-                    onChange={(e) => setGalleryFilter(e.target.value)}
+                    onChange={(e) => { setGalleryFilter(e.target.value); setGallerySubFilter('all') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     <option value="all">All Categories</option>
@@ -782,6 +794,24 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </div>
+                {galleryFilter !== 'all' && (
+                  <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
+                    <select
+                      value={gallerySubFilter}
+                      onChange={(e) => setGallerySubFilter(e.target.value)}
+                      className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                    >
+                      <option value="all">All Subcategories</option>
+                      {[...new Set(websiteImages
+                        .filter(i => splitCategory(i.category).mainCategory === galleryFilter)
+                        .map(i => splitCategory(i.category).subCategory)
+                        .filter(Boolean))].map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden md:block">
                     <div className="text-[10px] font-bold uppercase text-gray-400">Total Images</div>
@@ -801,7 +831,7 @@ export default function AdminDashboard() {
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-xl font-serif text-crystal-blue">Website Gallery & Decoration Images</h2>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
-                    {websiteImages.filter(i => galleryFilter === 'all' || splitCategory(i.category).mainCategory === galleryFilter).length} Images
+                    {filteredWebsiteImages.length} Images
                   </span>
                 </div>
 
@@ -811,8 +841,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
-                    {websiteImages
-                      ?.filter(img => galleryFilter === 'all' || splitCategory(img.category).mainCategory === galleryFilter)
+                    {filteredWebsiteImages
                       .map(img => (
                         <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
                           {/* Image Preview */}
@@ -880,7 +909,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {!loadingGallery && websiteImages.filter(i => galleryFilter === 'all' || splitCategory(i.category).mainCategory === galleryFilter).length === 0 && (
+                {!loadingGallery && filteredWebsiteImages.length === 0 && (
                   <div className="p-16 text-center">
                     <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-gray-400 text-sm">No images yet. Click "Add Image" to get started.</p>
@@ -897,7 +926,7 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Internal Category:</label>
                   <select
                     value={teamImageFilter}
-                    onChange={(e) => setTeamImageFilter(e.target.value)}
+                    onChange={(e) => { setTeamImageFilter(e.target.value); setTeamImageSubFilter('all') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     <option value="all">All Internal Images</option>
@@ -906,6 +935,24 @@ export default function AdminDashboard() {
                     ))}
                   </select>
                 </div>
+                {teamImageFilter !== 'all' && (
+                  <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
+                    <select
+                      value={teamImageSubFilter}
+                      onChange={(e) => setTeamImageSubFilter(e.target.value)}
+                      className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                    >
+                      <option value="all">All Subcategories</option>
+                      {[...new Set(teamImages
+                        .filter(i => splitCategory(i.category).mainCategory === teamImageFilter)
+                        .map(i => splitCategory(i.category).subCategory)
+                        .filter(Boolean))].map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden md:block">
                     <div className="text-[10px] font-bold uppercase text-gray-400">Internal Images</div>
@@ -927,7 +974,7 @@ export default function AdminDashboard() {
                     <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Only visible in admin, sales, and branch portals</p>
                   </div>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
-                    {teamImages.filter(i => teamImageFilter === 'all' || splitCategory(i.category).mainCategory === teamImageFilter).length} Images
+                    {filteredTeamImages.length} Images
                   </span>
                 </div>
 
@@ -937,8 +984,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
-                    {teamImages
-                      .filter(img => teamImageFilter === 'all' || splitCategory(img.category).mainCategory === teamImageFilter)
+                    {filteredTeamImages
                       .map(img => (
                         <div key={img.id} className="relative group border border-gray-50">
                           <div className="aspect-square overflow-hidden bg-gray-100">
@@ -994,7 +1040,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {!loadingGallery && teamImages.filter(i => teamImageFilter === 'all' || splitCategory(i.category).mainCategory === teamImageFilter).length === 0 && (
+                {!loadingGallery && filteredTeamImages.length === 0 && (
                   <div className="p-16 text-center">
                     <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-gray-400 text-sm">No internal images yet. Click "Add Internal Image" to get started.</p>

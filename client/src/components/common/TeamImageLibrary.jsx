@@ -23,6 +23,7 @@ const splitCategory = (category = '') => {
 
 export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = 'team-gallery', title = 'Customer Showcase' }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
+  const [selectedSubCategory, setSelectedSubCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
     queryKey: [queryKey],
     queryFn: async () => {
@@ -35,7 +36,15 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
   })
 
   const categories = ['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
-  const visibleImages = images?.filter((image) => selectedCategory === 'all' || splitCategory(image.category).mainCategory === selectedCategory)
+  const subCategories = ['all', ...new Set(images
+    ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
+    .map((image) => splitCategory(image.category).subCategory)
+    .filter(Boolean) || [])]
+  const visibleImages = images?.filter((image) => {
+    const parts = splitCategory(image.category)
+    return (selectedCategory === 'all' || parts.mainCategory === selectedCategory)
+      && (selectedSubCategory === 'all' || parts.subCategory === selectedSubCategory)
+  })
 
   return (
     <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
@@ -46,13 +55,24 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
         </div>
         <select
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          onChange={(e) => { setSelectedCategory(e.target.value); setSelectedSubCategory('all') }}
           className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
         >
           {categories.map((category) => (
             <option key={category} value={category}>{category === 'all' ? 'All Images' : category}</option>
           ))}
         </select>
+        {selectedCategory !== 'all' && (
+          <select
+            value={selectedSubCategory}
+            onChange={(e) => setSelectedSubCategory(e.target.value)}
+            className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
+          >
+            {subCategories.map((category) => (
+              <option key={category} value={category}>{category === 'all' ? 'All Subcategories' : category}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {isLoading ? (
