@@ -47,12 +47,7 @@ const GALLERY_CATEGORIES = [
   'Wedding Decoration',
   'Stage Decoration',
   'Table Decoration',
-  'Floral Decoration',
-  'Team Showcase',
-  'Sales Showcase',
-  'Slough Team Showcase',
-  'Wembley Team Showcase',
-  'Hayes Team Showcase'
+  'Floral Decoration'
 ]
 
 const INTERNAL_CATEGORIES = [
@@ -73,8 +68,9 @@ export default function AdminDashboard() {
   const [paymentModal, setPaymentModal] = useState({ isOpen: false, data: null, type: 'enquiry' })
   const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null, selectedBranch: 'Hayes' })
   const [selectedEvent, setSelectedEvent] = useState(null)
-  const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null })
+  const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null, type: 'public' })
   const [galleryFilter, setGalleryFilter] = useState('all')
+  const [teamImageFilter, setTeamImageFilter] = useState('all')
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryError, setGalleryError] = useState('')
 
@@ -134,6 +130,9 @@ export default function AdminDashboard() {
     enabled: !!auth?.authenticated
   })
 
+  const websiteImages = galleryImages?.filter((image) => !isInternalCategory(image.category)) || []
+  const teamImages = galleryImages?.filter((image) => isInternalCategory(image.category)) || []
+
   const createGalleryMutation = useMutation({
     mutationFn: async (imageData) => {
       const res = await fetch(getApiUrl('/api/admin/gallery'), {
@@ -154,7 +153,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
       setGalleryError('')
-      setGalleryModal({ isOpen: false, data: null })
+      setGalleryModal({ isOpen: false, data: null, type: 'public' })
     },
     onError: (error) => setGalleryError(error.message)
   })
@@ -178,7 +177,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
       setGalleryError('')
-      setGalleryModal({ isOpen: false, data: null })
+      setGalleryModal({ isOpen: false, data: null, type: 'public' })
     },
     onError: (error) => setGalleryError(error.message)
   })
@@ -203,7 +202,7 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
       setGalleryError('')
-      setGalleryModal({ isOpen: false, data: null })
+      setGalleryModal({ isOpen: false, data: null, type: 'public' })
     },
     onError: (error) => setGalleryError(error.message)
   })
@@ -390,6 +389,10 @@ export default function AdminDashboard() {
     )
   }
 
+  const modalIsInternal = galleryModal.type === 'internal' || isInternalCategory(galleryModal.data?.category)
+  const modalCategories = modalIsInternal ? INTERNAL_CATEGORIES : GALLERY_CATEGORIES
+  const modalDefaultCategory = galleryModal.data?.category || (modalIsInternal ? 'Team Showcase' : 'Venue')
+
   return (
     <div className="pt-32 pb-24 min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -413,7 +416,8 @@ export default function AdminDashboard() {
             { id: 'enquiries', label: 'Enquiries', icon: Mail },
             { id: 'bookings', label: 'Confirmed Bookings', icon: CheckCircle },
             { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon },
-            { id: 'gallery', label: 'Images & Decorations', icon: ImageIcon }
+            { id: 'gallery', label: 'Website Images', icon: ImageIcon },
+            { id: 'teamImages', label: 'Internal Team Images', icon: LayoutDashboard }
           ].map(tab => (
             <button
               key={tab.id}
@@ -741,7 +745,7 @@ export default function AdminDashboard() {
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     <option value="all">All Categories</option>
-                    {[...new Set(galleryImages?.map(i => i.category) || [])].map(cat => (
+                    {[...new Set(websiteImages.map(i => i.category))].map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -749,10 +753,10 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-4">
                   <div className="text-right hidden md:block">
                     <div className="text-[10px] font-bold uppercase text-gray-400">Total Images</div>
-                    <div className="text-xl font-bold text-crystal-blue">{galleryImages?.length || 0}</div>
+                    <div className="text-xl font-bold text-crystal-blue">{websiteImages.length}</div>
                   </div>
                   <button
-                    onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: null }) }}
+                    onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: null, type: 'public' }) }}
                     className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
                   >
                     <Plus size={16} /> Add Image
@@ -765,7 +769,7 @@ export default function AdminDashboard() {
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-xl font-serif text-crystal-blue">Website Gallery & Decoration Images</h2>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
-                    {galleryImages?.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length || 0} Images
+                    {websiteImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length} Images
                   </span>
                 </div>
 
@@ -775,7 +779,7 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
-                    {galleryImages
+                    {websiteImages
                       ?.filter(img => galleryFilter === 'all' || img.category === galleryFilter)
                       .map(img => (
                         <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
@@ -812,7 +816,7 @@ export default function AdminDashboard() {
                                 {img.active ? <Eye size={14} /> : <EyeOff size={14} />}
                               </button>
                               <button
-                                onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: img }) }}
+                                onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: img, type: 'public' }) }}
                                 className="p-1.5 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
                                 title="Edit Image"
                               >
@@ -841,10 +845,121 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {!loadingGallery && (!galleryImages || galleryImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length === 0) && (
+                {!loadingGallery && websiteImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length === 0 && (
                   <div className="p-16 text-center">
                     <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-gray-400 text-sm">No images yet. Click "Add Image" to get started.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'teamImages' && (
+            <div className="space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4">
+                <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                  <label className="text-[10px] font-bold uppercase text-gray-400">Internal Category:</label>
+                  <select
+                    value={teamImageFilter}
+                    onChange={(e) => setTeamImageFilter(e.target.value)}
+                    className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                  >
+                    <option value="all">All Internal Images</option>
+                    {[...new Set(teamImages.map(i => i.category))].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="text-right hidden md:block">
+                    <div className="text-[10px] font-bold uppercase text-gray-400">Internal Images</div>
+                    <div className="text-xl font-bold text-crystal-blue">{teamImages.length}</div>
+                  </div>
+                  <button
+                    onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: null, type: 'internal' }) }}
+                    className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
+                  >
+                    <Plus size={16} /> Add Internal Image
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-serif text-crystal-blue">Internal Team Image Library</h2>
+                    <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Only visible in admin, sales, and branch portals</p>
+                  </div>
+                  <span className="text-xs text-gray-400 uppercase tracking-widest">
+                    {teamImages.filter(i => teamImageFilter === 'all' || i.category === teamImageFilter).length} Images
+                  </span>
+                </div>
+
+                {loadingGallery ? (
+                  <div className="p-12 text-center">
+                    <div className="animate-pulse text-crystal-gold text-lg font-serif">Loading images...</div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
+                    {teamImages
+                      .filter(img => teamImageFilter === 'all' || img.category === teamImageFilter)
+                      .map(img => (
+                        <div key={img.id} className="relative group border border-gray-50">
+                          <div className="aspect-square overflow-hidden bg-gray-100">
+                            <WatermarkedImage
+                              src={getImageUrl(img.url)}
+                              alt={img.title}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
+                              onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
+                            />
+                          </div>
+
+                          <div className="p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h3 className="text-sm font-semibold text-crystal-dark truncate" title={img.title}>{img.title}</h3>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{img.category}</span>
+                              </div>
+                              <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-blue-50 text-crystal-blue rounded-full">Internal</span>
+                            </div>
+
+                            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-gray-50">
+                              <button
+                                onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: img, type: 'internal' }) }}
+                                className="p-1.5 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
+                                title="Edit Internal Image"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => { if(window.confirm('Delete this internal image permanently?')) deleteGalleryMutation.mutate(img.id) }}
+                                className="p-1.5 text-red-400 hover:bg-red-50 rounded transition-colors"
+                                title="Delete Image"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                              <a
+                                href={getImageUrl(img.url)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors ml-auto"
+                                title="Open image URL"
+                              >
+                                <ExternalLink size={14} />
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {!loadingGallery && teamImages.filter(i => teamImageFilter === 'all' || i.category === teamImageFilter).length === 0 && (
+                  <div className="p-16 text-center">
+                    <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
+                    <p className="text-gray-400 text-sm">No internal images yet. Click "Add Internal Image" to get started.</p>
                   </div>
                 )}
               </div>
@@ -1142,7 +1257,7 @@ export default function AdminDashboard() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl rounded-sm border-t-4 border-crystal-gold p-8">
             <h2 className="text-3xl font-serif text-crystal-blue mb-8">
-              {galleryModal.data ? 'Edit Image' : 'Add New Image'}
+              {galleryModal.data ? 'Edit Image' : modalIsInternal ? 'Add Internal Image' : 'Add Website Image'}
             </h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
@@ -1152,7 +1267,7 @@ export default function AdminDashboard() {
               const category = selectedCategory === '__custom__'
                 ? formData.get('customCategory')
                 : selectedCategory;
-              const internalImage = isInternalCategory(category);
+              const internalImage = modalIsInternal || isInternalCategory(category);
               if (!galleryModal.data && galleryFiles.length > 0) {
                 formData.delete('images');
                 galleryFiles.forEach((file) => formData.append('images', file));
@@ -1197,7 +1312,9 @@ export default function AdminDashboard() {
                     <div>
                       <div className="text-sm font-semibold text-crystal-blue">Drop images here or click to choose</div>
                       <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF</div>
-                      <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">Logo watermark appears automatically on the website</div>
+                      <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">
+                        {modalIsInternal ? 'For sales and branch portals only' : 'Logo watermark appears automatically on the website'}
+                      </div>
                     </div>
                     <input
                       name="images"
@@ -1265,7 +1382,7 @@ export default function AdminDashboard() {
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Category *</label>
                 <select
                   name="category"
-                  defaultValue={galleryModal.data?.category || 'Venue'}
+                  defaultValue={modalDefaultCategory}
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                   onChange={(e) => {
                     const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
@@ -1275,10 +1392,10 @@ export default function AdminDashboard() {
                     }
                   }}
                 >
-                  {[...new Set([...GALLERY_CATEGORIES, galleryModal.data?.category].filter(Boolean))].map((category) => (
+                  {[...new Set([...modalCategories, galleryModal.data?.category].filter(Boolean))].map((category) => (
                     <option key={category} value={category}>{category}</option>
                   ))}
-                  <option value="__custom__">Other (type below)</option>
+                  {!modalIsInternal && <option value="__custom__">Other (type below)</option>}
                 </select>
                 <input
                   name="customCategory"
@@ -1301,24 +1418,27 @@ export default function AdminDashboard() {
               </div>
 
               {/* Active Toggle */}
-              <div className="flex items-center gap-3">
-                <input
-                  name="active"
-                  type="checkbox"
-                  defaultChecked={galleryModal.data?.active !== undefined ? galleryModal.data.active : true}
-                  className="w-4 h-4 accent-crystal-gold"
-                />
-                <label className="text-xs font-bold uppercase text-gray-500">Show on website</label>
-              </div>
-              <p className="text-[10px] text-gray-400 -mt-4">
-                Team Showcase categories are kept internal for admin, sales, and branch portals even if this is checked.
-              </p>
+              {modalIsInternal ? (
+                <div className="bg-blue-50 border border-blue-100 text-crystal-blue text-xs px-4 py-3">
+                  Internal images are hidden from the public website and only appear in admin, sales, and branch portals.
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <input
+                    name="active"
+                    type="checkbox"
+                    defaultChecked={galleryModal.data?.active !== undefined ? galleryModal.data.active : true}
+                    className="w-4 h-4 accent-crystal-gold"
+                  />
+                  <label className="text-xs font-bold uppercase text-gray-500">Show on website</label>
+                </div>
+              )}
 
               {/* Buttons */}
               <div className="pt-6 flex gap-4">
                 <button
                   type="button"
-                  onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: false, data: null }) }}
+                  onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: false, data: null, type: 'public' }) }}
                   className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50"
                 >
                   Cancel
