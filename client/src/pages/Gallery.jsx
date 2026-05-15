@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
+import { useState } from 'react'
 import { getApiUrl } from '../utils/api'
+import { getImageUrl } from '../utils/media'
 
 export default function Gallery() {
+  const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
     queryFn: async () => {
@@ -34,8 +37,26 @@ export default function Gallery() {
         </p>
       </motion.div>
 
+      <div className="flex flex-wrap justify-center gap-3 mb-10">
+        {['all', ...new Set(images?.map((image) => image.category) || [])].map((category) => (
+          <button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={`px-5 py-2 text-xs uppercase tracking-widest border transition-all ${
+              selectedCategory === category
+                ? 'bg-crystal-blue text-white border-crystal-blue'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
+            }`}
+          >
+            {category === 'all' ? 'All' : category}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {images?.map((image, index) => (
+        {images
+          ?.filter((image) => selectedCategory === 'all' || image.category === selectedCategory)
+          .map((image, index) => (
           <motion.div 
             key={image.id}
             initial={{ opacity: 0, scale: 0.9 }}
@@ -45,7 +66,7 @@ export default function Gallery() {
             className="relative group overflow-hidden aspect-square rounded-sm shadow-lg bg-gray-200"
           >
             <img 
-              src={image.url} 
+              src={getImageUrl(image.url)}
               alt={image.title}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"

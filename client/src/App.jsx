@@ -7,6 +7,7 @@ import VenueDetails from './pages/VenueDetails'
 import Events from './pages/Events'
 import Catering from './pages/Catering'
 import Gallery from './pages/Gallery'
+import Decorations from './pages/Decorations'
 import Contact from './pages/Contact'
 import NotFound from './pages/NotFound'
 import AdminLogin from './pages/admin/AdminLogin'
@@ -28,6 +29,7 @@ function App() {
             <Route path="/venues/:id" element={<VenueDetails />} />
             <Route path="/events" element={<Events />} />
             <Route path="/catering" element={<Catering />} />
+            <Route path="/decorations" element={<Decorations />} />
             <Route path="/gallery" element={<Gallery />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin/login" element={<AdminLogin />} />

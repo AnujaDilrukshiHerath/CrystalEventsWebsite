@@ -37,6 +37,7 @@ app.use(helmet({
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // API Routes
 app.use('/api', apiRoutes);

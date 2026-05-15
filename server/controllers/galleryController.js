@@ -1,16 +1,147 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const fs = require('fs/promises');
+const path = require('path');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
+const UPLOAD_DIR = path.join(__dirname, '../public/uploads/gallery');
+const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+const IMAGE_TYPES = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif'
+};
+
+const verifyAdmin = (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded.role !== 'admin') {
+      res.status(403).json({ message: 'Forbidden' });
+      return null;
+    }
+    return decoded;
+  } catch (error) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return null;
+  }
+};
+
+const readRequestBuffer = async (req) => {
+  const chunks = [];
+  let total = 0;
+
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > MAX_UPLOAD_BYTES) {
+      const error = new Error('Upload is too large');
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(chunk);
+  }
+
+  return Buffer.concat(chunks);
+};
+
+const parseMultipart = (buffer, boundary) => {
+  const boundaryBuffer = Buffer.from(`--${boundary}`);
+  const headerSeparator = Buffer.from('\r\n\r\n');
+  const parts = [];
+  let position = buffer.indexOf(boundaryBuffer);
+
+  while (position !== -1) {
+    position += boundaryBuffer.length;
+    if (buffer[position] === 45 && buffer[position + 1] === 45) break;
+    if (buffer[position] === 13 && buffer[position + 1] === 10) position += 2;
+
+    const headerEnd = buffer.indexOf(headerSeparator, position);
+    if (headerEnd === -1) break;
+
+    const headers = buffer.slice(position, headerEnd).toString('utf8');
+    const dataStart = headerEnd + headerSeparator.length;
+    const nextBoundary = buffer.indexOf(Buffer.from(`\r\n--${boundary}`), dataStart);
+    if (nextBoundary === -1) break;
+
+    const disposition = headers.match(/content-disposition:\s*form-data;\s*([^\r\n]+)/i);
+    const name = disposition?.[1].match(/name="([^"]+)"/)?.[1];
+    const filename = disposition?.[1].match(/filename="([^"]*)"/)?.[1];
+    const contentType = headers.match(/content-type:\s*([^\r\n]+)/i)?.[1]?.trim();
+
+    if (name) {
+      parts.push({
+        name,
+        filename,
+        contentType,
+        data: buffer.slice(dataStart, nextBoundary)
+      });
+    }
+
+    position = nextBoundary + 2;
+    position = buffer.indexOf(boundaryBuffer, position);
+  }
+
+  return parts;
+};
+
+const parseMultipartForm = async (req) => {
+  const contentType = req.headers['content-type'] || '';
+  const boundary = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/)?.[1] || contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/)?.[2];
+  if (!boundary) {
+    const error = new Error('Missing multipart boundary');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const buffer = await readRequestBuffer(req);
+  const parts = parseMultipart(buffer, boundary);
+  const fields = {};
+  const files = [];
+
+  parts.forEach((part) => {
+    if (part.filename) {
+      files.push(part);
+    } else {
+      fields[part.name] = part.data.toString('utf8');
+    }
+  });
+
+  return { fields, files };
+};
+
+const normalizeBoolean = (value, fallback = true) => {
+  if (value === undefined) return fallback;
+  if (typeof value === 'boolean') return value;
+  return value === 'true' || value === 'on' || value === '1';
+};
+
+const titleFromFilename = (filename) => {
+  const base = path.basename(filename || 'Gallery Image', path.extname(filename || ''));
+  return base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Gallery Image';
+};
 
 // Public: Get all active gallery images (for the website)
 exports.getGallery = async (req, res) => {
   try {
-    const images = await prisma.galleryImage.findMany({
+    let images = await prisma.galleryImage.findMany({
       where: { active: true },
       orderBy: { sortOrder: 'asc' }
     });
+    if (req.query.category) {
+      images = images.filter((image) => image.category === req.query.category);
+    }
+    if (req.query.type === 'decorations') {
+      images = images.filter((image) => image.category.toLowerCase().includes('decoration'));
+    }
     // Map to match existing frontend format: { id, url, title, category }
     res.status(200).json(images);
   } catch (error) {
@@ -22,12 +153,7 @@ exports.getGallery = async (req, res) => {
 // Admin: Get ALL gallery images (including inactive)
 exports.getAdminGallery = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    if (!verifyAdmin(req, res)) return;
 
     const images = await prisma.galleryImage.findMany({
       orderBy: { sortOrder: 'asc' }
@@ -42,12 +168,7 @@ exports.getAdminGallery = async (req, res) => {
 // Admin: Create a new gallery image
 exports.createGalleryImage = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    if (!verifyAdmin(req, res)) return;
 
     const { url, title, category, sortOrder, active } = req.body;
 
@@ -61,7 +182,7 @@ exports.createGalleryImage = async (req, res) => {
         title,
         category,
         sortOrder: sortOrder !== undefined ? parseInt(sortOrder) : 0,
-        active: active !== undefined ? active : true
+        active: normalizeBoolean(active)
       }
     });
 
@@ -72,16 +193,58 @@ exports.createGalleryImage = async (req, res) => {
   }
 };
 
+// Admin: Upload one or more gallery images from the admin panel
+exports.uploadGalleryImages = async (req, res) => {
+  try {
+    if (!verifyAdmin(req, res)) return;
+
+    const { fields, files } = await parseMultipartForm(req);
+    const category = fields.customCategory || fields.category;
+    const sortOrder = parseInt(fields.sortOrder || '0');
+    const active = normalizeBoolean(fields.active);
+
+    if (!category || files.length === 0) {
+      return res.status(400).json({ message: 'Category and at least one image file are required' });
+    }
+
+    await fs.mkdir(UPLOAD_DIR, { recursive: true });
+
+    const createdImages = [];
+    for (const [index, file] of files.entries()) {
+      if (!IMAGE_TYPES[file.contentType]) {
+        return res.status(400).json({ message: 'Only JPG, PNG, WebP, and GIF images are supported' });
+      }
+
+      const extension = IMAGE_TYPES[file.contentType];
+      const safeName = titleFromFilename(file.filename).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const filename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}.${extension}`;
+      await fs.writeFile(path.join(UPLOAD_DIR, filename), file.data);
+
+      const image = await prisma.galleryImage.create({
+        data: {
+          url: `/uploads/gallery/${filename}`,
+          title: files.length === 1 && fields.title ? fields.title : titleFromFilename(file.filename),
+          category,
+          sortOrder: sortOrder + index,
+          active
+        }
+      });
+
+      createdImages.push(image);
+    }
+
+    res.status(201).json(createdImages.length === 1 ? createdImages[0] : createdImages);
+  } catch (error) {
+    console.error('Error uploading gallery images:', error);
+    res.status(error.statusCode || 500).json({ message: error.message || 'Error uploading gallery images' });
+  }
+};
+
 // Admin: Update an existing gallery image
 exports.updateGalleryImage = async (req, res) => {
   try {
     const { id } = req.params;
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    if (!verifyAdmin(req, res)) return;
 
     const { url, title, category, sortOrder, active } = req.body;
 
@@ -90,7 +253,7 @@ exports.updateGalleryImage = async (req, res) => {
     if (title !== undefined) updateData.title = title;
     if (category !== undefined) updateData.category = category;
     if (sortOrder !== undefined) updateData.sortOrder = parseInt(sortOrder);
-    if (active !== undefined) updateData.active = active;
+    if (active !== undefined) updateData.active = normalizeBoolean(active);
 
     const image = await prisma.galleryImage.update({
       where: { id },
@@ -108,12 +271,7 @@ exports.updateGalleryImage = async (req, res) => {
 exports.deleteGalleryImage = async (req, res) => {
   try {
     const { id } = req.params;
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
-    if (!token) return res.status(401).json({ message: 'Unauthorized' });
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (decoded.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+    if (!verifyAdmin(req, res)) return;
 
     await prisma.galleryImage.delete({
       where: { id }

@@ -27,15 +27,27 @@ import {
   ImageIcon,
   Eye,
   EyeOff,
-  ExternalLink
+  ExternalLink,
+  Upload
 } from 'lucide-react'
 import './AdminCalendar.css'
+import { getImageUrl } from '../../utils/media'
 
 const BRANCH_HALLS = {
   'Hayes': ['Grand Ballroom', 'Diamond Suite'],
   'Slough': ['Upstairs Hall 1', 'Downstairs Hall'],
   'Wembley': ['Upstairs Wings Hall', 'Aqua 1', 'Aqua 2', 'Sports Lounge']
 }
+
+const GALLERY_CATEGORIES = [
+  'Venue',
+  'Event',
+  'Catering',
+  'Wedding Decoration',
+  'Stage Decoration',
+  'Table Decoration',
+  'Floral Decoration'
+]
 
 export default function AdminDashboard() {
 
@@ -47,6 +59,7 @@ export default function AdminDashboard() {
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null })
   const [galleryFilter, setGalleryFilter] = useState('all')
+  const [galleryFiles, setGalleryFiles] = useState([])
 
 
   // Auth Check
@@ -119,6 +132,26 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+      setGalleryFiles([])
+      setGalleryModal({ isOpen: false, data: null })
+    }
+  })
+
+  const uploadGalleryMutation = useMutation({
+    mutationFn: async (formData) => {
+      const res = await fetch(getApiUrl('/api/admin/gallery/upload'), {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: formData
+      })
+      if (!res.ok) throw new Error('Failed to upload image')
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+      setGalleryFiles([])
       setGalleryModal({ isOpen: false, data: null })
     }
   })
@@ -138,6 +171,7 @@ export default function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
+      setGalleryFiles([])
       setGalleryModal({ isOpen: false, data: null })
     }
   })
@@ -347,7 +381,7 @@ export default function AdminDashboard() {
             { id: 'enquiries', label: 'Enquiries', icon: Mail },
             { id: 'bookings', label: 'Confirmed Bookings', icon: CheckCircle },
             { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon },
-            { id: 'gallery', label: 'Website Images', icon: ImageIcon }
+            { id: 'gallery', label: 'Images & Decorations', icon: ImageIcon }
           ].map(tab => (
             <button
               key={tab.id}
@@ -686,7 +720,7 @@ export default function AdminDashboard() {
                     <div className="text-xl font-bold text-crystal-blue">{galleryImages?.length || 0}</div>
                   </div>
                   <button
-                    onClick={() => setGalleryModal({ isOpen: true, data: null })}
+                    onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: true, data: null }) }}
                     className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
                   >
                     <Plus size={16} /> Add Image
@@ -697,7 +731,7 @@ export default function AdminDashboard() {
               {/* Image Grid */}
               <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-blue overflow-hidden">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                  <h2 className="text-xl font-serif text-crystal-blue">Website Gallery Images</h2>
+                  <h2 className="text-xl font-serif text-crystal-blue">Website Gallery & Decoration Images</h2>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
                     {galleryImages?.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length || 0} Images
                   </span>
@@ -716,7 +750,7 @@ export default function AdminDashboard() {
                           {/* Image Preview */}
                           <div className="aspect-square overflow-hidden bg-gray-100">
                             <img
-                              src={img.url}
+                              src={getImageUrl(img.url)}
                               alt={img.title}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
@@ -745,7 +779,7 @@ export default function AdminDashboard() {
                                 {img.active ? <Eye size={14} /> : <EyeOff size={14} />}
                               </button>
                               <button
-                                onClick={() => setGalleryModal({ isOpen: true, data: img })}
+                                onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: true, data: img }) }}
                                 className="p-1.5 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
                                 title="Edit Image"
                               >
@@ -759,7 +793,7 @@ export default function AdminDashboard() {
                                 <Trash2 size={14} />
                               </button>
                               <a
-                                href={img.url}
+                                href={getImageUrl(img.url)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors ml-auto"
@@ -1080,37 +1114,90 @@ export default function AdminDashboard() {
             <form onSubmit={(e) => {
               e.preventDefault();
               const formData = new FormData(e.target);
+              const selectedCategory = formData.get('category');
+              const category = selectedCategory === '__custom__'
+                ? formData.get('customCategory')
+                : selectedCategory;
+              if (!galleryModal.data && galleryFiles.length > 0) {
+                formData.delete('images');
+                galleryFiles.forEach((file) => formData.append('images', file));
+                formData.set('category', category);
+                formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
+                uploadGalleryMutation.mutate(formData);
+                return;
+              }
+
               const data = {
                 url: formData.get('url'),
                 title: formData.get('title'),
-                category: formData.get('customCategory') || formData.get('category'),
+                category,
                 sortOrder: parseInt(formData.get('sortOrder') || '0'),
                 active: formData.get('active') === 'on'
               };
+
               if (galleryModal.data) {
                 updateGalleryMutation.mutate({ id: galleryModal.data.id, ...data });
               } else {
                 createGalleryMutation.mutate(data);
               }
             }} className="space-y-6">
-              {/* Image URL */}
+              {!galleryModal.data && (
+                <div>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Drop Image Files</label>
+                  <label
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setGalleryFiles(Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/')));
+                    }}
+                    className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 bg-gray-50 p-6 text-center hover:border-crystal-gold hover:bg-white transition-colors"
+                  >
+                    <Upload size={28} className="text-crystal-gold" />
+                    <div>
+                      <div className="text-sm font-semibold text-crystal-blue">Drop images here or click to choose</div>
+                      <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF</div>
+                    </div>
+                    <input
+                      name="images"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => setGalleryFiles(Array.from(e.target.files || []))}
+                    />
+                  </label>
+                  {galleryFiles.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {galleryFiles.map((file) => (
+                        <div key={`${file.name}-${file.size}`} className="text-xs text-gray-500 flex justify-between gap-3">
+                          <span className="truncate">{file.name}</span>
+                          <span>{Math.round(file.size / 1024)} KB</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Image URL *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
+                  Image URL {galleryModal.data || galleryFiles.length === 0 ? '*' : '(optional)'}
+                </label>
                 <input
                   name="url"
                   defaultValue={galleryModal.data?.url}
-                  required
+                  required={galleryModal.data || galleryFiles.length === 0}
                   placeholder="https://... or /images/gallery/filename.jpeg"
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                 />
-                <p className="text-[10px] text-gray-400 mt-1">Paste a Cloudinary URL, Unsplash URL, or local path</p>
+                <p className="text-[10px] text-gray-400 mt-1">Use this when you want to paste a hosted image URL instead</p>
               </div>
 
               {/* Image Preview */}
               {galleryModal.data?.url && (
                 <div className="aspect-video overflow-hidden rounded bg-gray-100 border border-gray-200">
                   <img
-                    src={galleryModal.data.url}
+                    src={getImageUrl(galleryModal.data.url)}
                     alt="Preview"
                     className="w-full h-full object-cover"
                     onError={(e) => { e.target.style.display = 'none' }}
@@ -1124,7 +1211,7 @@ export default function AdminDashboard() {
                 <input
                   name="title"
                   defaultValue={galleryModal.data?.title}
-                  required
+                  required={galleryModal.data || galleryFiles.length <= 1}
                   placeholder="e.g. Grand Ballroom Setup"
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                 />
@@ -1139,13 +1226,15 @@ export default function AdminDashboard() {
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                   onChange={(e) => {
                     const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
-                    if (customInput) customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
+                    if (customInput) {
+                      customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
+                      customInput.required = e.target.value === '__custom__';
+                    }
                   }}
                 >
-                  <option value="Venue">Venue</option>
-                  <option value="Event">Event</option>
-                  <option value="Catering">Catering</option>
-                  <option value="Decoration">Decoration</option>
+                  {[...new Set([...GALLERY_CATEGORIES, galleryModal.data?.category].filter(Boolean))].map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
                   <option value="__custom__">Other (type below)</option>
                 </select>
                 <input
@@ -1183,17 +1272,17 @@ export default function AdminDashboard() {
               <div className="pt-6 flex gap-4">
                 <button
                   type="button"
-                  onClick={() => setGalleryModal({ isOpen: false, data: null })}
+                  onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: false, data: null }) }}
                   className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={createGalleryMutation.isPending || updateGalleryMutation.isPending}
+                  disabled={createGalleryMutation.isPending || updateGalleryMutation.isPending || uploadGalleryMutation.isPending}
                   className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg disabled:opacity-50"
                 >
-                  {galleryModal.data ? 'Update Image' : 'Add Image'}
+                  {galleryModal.data ? 'Update Image' : galleryFiles.length > 0 ? 'Upload Image' : 'Add Image'}
                 </button>
               </div>
             </form>
