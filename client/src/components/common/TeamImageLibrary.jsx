@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { ImageIcon } from 'lucide-react'
 import { getApiUrl } from '../../utils/api'
 import { getImageUrl } from '../../utils/media'
 import WatermarkedImage from './WatermarkedImage'
+import ImageLightbox from './ImageLightbox'
 
 const INTERNAL_CATEGORY_PREFIX = 'Internal: '
 const CATEGORY_SEPARATOR = ' :: '
@@ -22,8 +23,9 @@ const splitCategory = (category = '') => {
 }
 
 export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = 'team-gallery', title = 'Customer Showcase' }) {
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [selectedSubCategory, setSelectedSubCategory] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedSubCategory, setSelectedSubCategory] = useState('')
+  const [selectedImage, setSelectedImage] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: [queryKey],
     queryFn: async () => {
@@ -35,16 +37,27 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
     }
   })
 
-  const categories = ['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
-  const subCategories = ['all', ...new Set(images
+  const categories = [...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
+  const subCategories = [...new Set(images
     ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
     .map((image) => splitCategory(image.category).subCategory)
     .filter(Boolean) || [])]
   const visibleImages = images?.filter((image) => {
     const parts = splitCategory(image.category)
-    return (selectedCategory === 'all' || parts.mainCategory === selectedCategory)
-      && (selectedSubCategory === 'all' || parts.subCategory === selectedSubCategory)
+    return (!selectedCategory || parts.mainCategory === selectedCategory)
+      && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
   })
+
+  useEffect(() => {
+    if (!selectedCategory && categories.length > 0) setSelectedCategory(categories[0])
+  }, [categories, selectedCategory])
+
+  useEffect(() => {
+    if (subCategories.length > 0 && !subCategories.includes(selectedSubCategory)) {
+      setSelectedSubCategory(subCategories[0])
+    }
+    if (subCategories.length === 0 && selectedSubCategory) setSelectedSubCategory('')
+  }, [subCategories, selectedSubCategory])
 
   return (
     <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
@@ -55,21 +68,21 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
         </div>
         <select
           value={selectedCategory}
-          onChange={(e) => { setSelectedCategory(e.target.value); setSelectedSubCategory('all') }}
+          onChange={(e) => { setSelectedCategory(e.target.value); setSelectedSubCategory('') }}
           className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
         >
           {categories.map((category) => (
-            <option key={category} value={category}>{category === 'all' ? 'All Images' : category}</option>
+            <option key={category} value={category}>{category}</option>
           ))}
         </select>
-        {selectedCategory !== 'all' && (
+        {subCategories.length > 0 && (
           <select
             value={selectedSubCategory}
             onChange={(e) => setSelectedSubCategory(e.target.value)}
             className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
           >
             {subCategories.map((category) => (
-              <option key={category} value={category}>{category === 'all' ? 'All Subcategories' : category}</option>
+              <option key={category} value={category}>{category}</option>
             ))}
           </select>
         )}
@@ -80,7 +93,11 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
       ) : visibleImages?.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0">
           {visibleImages.map((image) => (
-            <div key={image.id} className="border border-gray-50">
+            <div
+              key={image.id}
+              className="border border-gray-50 cursor-zoom-in"
+              onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title })}
+            >
               <div className="aspect-square bg-gray-100 overflow-hidden">
                 <WatermarkedImage
                   src={getImageUrl(image.url)}
@@ -106,6 +123,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
           <p className="text-gray-400 text-sm">No internal showcase images have been added yet.</p>
         </div>
       )}
+      <ImageLightbox image={selectedImage} onClose={() => setSelectedImage(null)} />
     </div>
   )
 }

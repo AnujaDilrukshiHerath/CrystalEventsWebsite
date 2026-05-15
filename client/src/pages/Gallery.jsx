@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getApiUrl } from '../utils/api'
 import { getImageUrl } from '../utils/media'
 import WatermarkedImage from '../components/common/WatermarkedImage'
+import ImageLightbox from '../components/common/ImageLightbox'
 
 const CATEGORY_SEPARATOR = ' :: '
 
@@ -16,8 +17,9 @@ const splitCategory = (category = '') => {
 }
 
 export default function Gallery() {
-  const [selectedCategory, setSelectedCategory] = useState('all')
-  const [selectedSubCategory, setSelectedSubCategory] = useState('all')
+  const [selectedCategory, setSelectedCategory] = useState('')
+  const [selectedSubCategory, setSelectedSubCategory] = useState('')
+  const [selectedImage, setSelectedImage] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
     queryFn: async () => {
@@ -26,10 +28,27 @@ export default function Gallery() {
       return res.json()
     }
   })
-  const subCategories = ['all', ...new Set(images
+  const categories = [...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
+  const subCategories = [...new Set(images
     ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
     .map((image) => splitCategory(image.category).subCategory)
     .filter(Boolean) || [])]
+  const filteredImages = images?.filter((image) => {
+    const parts = splitCategory(image.category)
+    return (!selectedCategory || parts.mainCategory === selectedCategory)
+      && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
+  })
+
+  useEffect(() => {
+    if (!selectedCategory && categories.length > 0) setSelectedCategory(categories[0])
+  }, [categories, selectedCategory])
+
+  useEffect(() => {
+    if (subCategories.length > 0 && !subCategories.includes(selectedSubCategory)) {
+      setSelectedSubCategory(subCategories[0])
+    }
+    if (subCategories.length === 0 && selectedSubCategory) setSelectedSubCategory('')
+  }, [subCategories, selectedSubCategory])
 
   if (isLoading) {
     return (
@@ -54,21 +73,21 @@ export default function Gallery() {
       </motion.div>
 
       <div className="flex flex-wrap justify-center gap-3 mb-10">
-        {['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])].map((category) => (
+        {categories.map((category) => (
           <button
             key={category}
-            onClick={() => { setSelectedCategory(category); setSelectedSubCategory('all') }}
+            onClick={() => { setSelectedCategory(category); setSelectedSubCategory('') }}
             className={`px-5 py-2 text-xs uppercase tracking-widest border transition-all ${
               selectedCategory === category
                 ? 'bg-crystal-blue text-white border-crystal-blue'
                 : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
             }`}
           >
-            {category === 'all' ? 'All' : category}
+            {category}
           </button>
         ))}
       </div>
-      {selectedCategory !== 'all' && (
+      {subCategories.length > 0 && (
         <div className="flex flex-wrap justify-center gap-3 mb-10 -mt-4">
           {subCategories.map((category) => (
             <button
@@ -80,27 +99,22 @@ export default function Gallery() {
                   : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
               }`}
             >
-              {category === 'all' ? 'All Subcategories' : category}
+              {category}
             </button>
           ))}
         </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {images
-          ?.filter((image) => {
-            const parts = splitCategory(image.category)
-            return (selectedCategory === 'all' || parts.mainCategory === selectedCategory)
-              && (selectedSubCategory === 'all' || parts.subCategory === selectedSubCategory)
-          })
-          .map((image, index) => (
+        {filteredImages?.map((image, index) => (
           <motion.div 
             key={image.id}
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
-            className="relative group overflow-hidden aspect-square rounded-sm shadow-lg bg-gray-200"
+            className="relative group overflow-hidden aspect-square rounded-sm shadow-lg bg-gray-200 cursor-zoom-in"
+            onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title })}
           >
             <WatermarkedImage
               src={getImageUrl(image.url)}
@@ -119,6 +133,7 @@ export default function Gallery() {
           </motion.div>
         ))}
       </div>
+      <ImageLightbox image={selectedImage} onClose={() => setSelectedImage(null)} />
     </div>
   )
 }

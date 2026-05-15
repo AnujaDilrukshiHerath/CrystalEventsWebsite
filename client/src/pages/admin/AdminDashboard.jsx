@@ -33,6 +33,7 @@ import {
 import './AdminCalendar.css'
 import { getImageUrl } from '../../utils/media'
 import WatermarkedImage from '../../components/common/WatermarkedImage'
+import ImageLightbox from '../../components/common/ImageLightbox'
 
 const BRANCH_HALLS = {
   'Hayes': ['Grand Ballroom', 'Diamond Suite'],
@@ -99,12 +100,13 @@ export default function AdminDashboard() {
   const [bookingModal, setBookingModal] = useState({ isOpen: false, data: null, selectedBranch: 'Hayes' })
   const [selectedEvent, setSelectedEvent] = useState(null)
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null, type: 'public' })
-  const [galleryFilter, setGalleryFilter] = useState('all')
-  const [gallerySubFilter, setGallerySubFilter] = useState('all')
-  const [teamImageFilter, setTeamImageFilter] = useState('all')
-  const [teamImageSubFilter, setTeamImageSubFilter] = useState('all')
+  const [galleryFilter, setGalleryFilter] = useState('')
+  const [gallerySubFilter, setGallerySubFilter] = useState('')
+  const [teamImageFilter, setTeamImageFilter] = useState('')
+  const [teamImageSubFilter, setTeamImageSubFilter] = useState('')
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryError, setGalleryError] = useState('')
+  const [selectedImage, setSelectedImage] = useState(null)
 
 
   // Auth Check
@@ -164,16 +166,50 @@ export default function AdminDashboard() {
 
   const websiteImages = galleryImages?.filter((image) => !isInternalCategory(image.category)) || []
   const teamImages = galleryImages?.filter((image) => isInternalCategory(image.category)) || []
+  const websiteCategoryOptions = [...new Set(websiteImages.map(i => splitCategory(i.category).mainCategory))]
+  const websiteSubCategoryOptions = [...new Set(websiteImages
+    .filter(i => splitCategory(i.category).mainCategory === galleryFilter)
+    .map(i => splitCategory(i.category).subCategory)
+    .filter(Boolean))]
+  const teamCategoryOptions = [...new Set(teamImages.map(i => splitCategory(i.category).mainCategory))]
+  const teamSubCategoryOptions = [...new Set(teamImages
+    .filter(i => splitCategory(i.category).mainCategory === teamImageFilter)
+    .map(i => splitCategory(i.category).subCategory)
+    .filter(Boolean))]
   const filteredWebsiteImages = websiteImages.filter((image) => {
     const parts = splitCategory(image.category)
-    return (galleryFilter === 'all' || parts.mainCategory === galleryFilter)
-      && (gallerySubFilter === 'all' || parts.subCategory === gallerySubFilter)
+    return (!galleryFilter || parts.mainCategory === galleryFilter)
+      && (!gallerySubFilter || parts.subCategory === gallerySubFilter)
   })
   const filteredTeamImages = teamImages.filter((image) => {
     const parts = splitCategory(image.category)
-    return (teamImageFilter === 'all' || parts.mainCategory === teamImageFilter)
-      && (teamImageSubFilter === 'all' || parts.subCategory === teamImageSubFilter)
+    return (!teamImageFilter || parts.mainCategory === teamImageFilter)
+      && (!teamImageSubFilter || parts.subCategory === teamImageSubFilter)
   })
+
+  useEffect(() => {
+    if (!galleryFilter && websiteCategoryOptions.length > 0) setGalleryFilter(websiteCategoryOptions[0])
+    if (galleryFilter && !websiteCategoryOptions.includes(galleryFilter)) setGalleryFilter(websiteCategoryOptions[0] || '')
+  }, [galleryFilter, websiteCategoryOptions])
+
+  useEffect(() => {
+    if (websiteSubCategoryOptions.length > 0 && !websiteSubCategoryOptions.includes(gallerySubFilter)) {
+      setGallerySubFilter(websiteSubCategoryOptions[0])
+    }
+    if (websiteSubCategoryOptions.length === 0 && gallerySubFilter) setGallerySubFilter('')
+  }, [gallerySubFilter, websiteSubCategoryOptions])
+
+  useEffect(() => {
+    if (!teamImageFilter && teamCategoryOptions.length > 0) setTeamImageFilter(teamCategoryOptions[0])
+    if (teamImageFilter && !teamCategoryOptions.includes(teamImageFilter)) setTeamImageFilter(teamCategoryOptions[0] || '')
+  }, [teamImageFilter, teamCategoryOptions])
+
+  useEffect(() => {
+    if (teamSubCategoryOptions.length > 0 && !teamSubCategoryOptions.includes(teamImageSubFilter)) {
+      setTeamImageSubFilter(teamSubCategoryOptions[0])
+    }
+    if (teamSubCategoryOptions.length === 0 && teamImageSubFilter) setTeamImageSubFilter('')
+  }, [teamImageSubFilter, teamSubCategoryOptions])
 
   const createGalleryMutation = useMutation({
     mutationFn: async (imageData) => {
@@ -785,16 +821,15 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Category:</label>
                   <select
                     value={galleryFilter}
-                    onChange={(e) => { setGalleryFilter(e.target.value); setGallerySubFilter('all') }}
+                    onChange={(e) => { setGalleryFilter(e.target.value); setGallerySubFilter('') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
-                    <option value="all">All Categories</option>
-                    {[...new Set(websiteImages.map(i => splitCategory(i.category).mainCategory))].map(cat => (
+                    {websiteCategoryOptions.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
-                {galleryFilter !== 'all' && (
+                {websiteSubCategoryOptions.length > 0 && (
                   <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
                     <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
                     <select
@@ -802,11 +837,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setGallerySubFilter(e.target.value)}
                       className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                     >
-                      <option value="all">All Subcategories</option>
-                      {[...new Set(websiteImages
-                        .filter(i => splitCategory(i.category).mainCategory === galleryFilter)
-                        .map(i => splitCategory(i.category).subCategory)
-                        .filter(Boolean))].map(sub => (
+                      {websiteSubCategoryOptions.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
                       ))}
                     </select>
@@ -845,7 +876,10 @@ export default function AdminDashboard() {
                       .map(img => (
                         <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
                           {/* Image Preview */}
-                          <div className="aspect-square overflow-hidden bg-gray-100">
+                          <div
+                            className="aspect-square overflow-hidden bg-gray-100 cursor-zoom-in"
+                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title })}
+                          >
                             <WatermarkedImage
                               src={getImageUrl(img.url)}
                               alt={img.title}
@@ -926,16 +960,15 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Internal Category:</label>
                   <select
                     value={teamImageFilter}
-                    onChange={(e) => { setTeamImageFilter(e.target.value); setTeamImageSubFilter('all') }}
+                    onChange={(e) => { setTeamImageFilter(e.target.value); setTeamImageSubFilter('') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
-                    <option value="all">All Internal Images</option>
-                    {[...new Set(teamImages.map(i => splitCategory(i.category).mainCategory))].map(cat => (
+                    {teamCategoryOptions.map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
-                {teamImageFilter !== 'all' && (
+                {teamSubCategoryOptions.length > 0 && (
                   <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
                     <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
                     <select
@@ -943,11 +976,7 @@ export default function AdminDashboard() {
                       onChange={(e) => setTeamImageSubFilter(e.target.value)}
                       className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                     >
-                      <option value="all">All Subcategories</option>
-                      {[...new Set(teamImages
-                        .filter(i => splitCategory(i.category).mainCategory === teamImageFilter)
-                        .map(i => splitCategory(i.category).subCategory)
-                        .filter(Boolean))].map(sub => (
+                      {teamSubCategoryOptions.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
                       ))}
                     </select>
@@ -987,7 +1016,10 @@ export default function AdminDashboard() {
                     {filteredTeamImages
                       .map(img => (
                         <div key={img.id} className="relative group border border-gray-50">
-                          <div className="aspect-square overflow-hidden bg-gray-100">
+                          <div
+                            className="aspect-square overflow-hidden bg-gray-100 cursor-zoom-in"
+                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title })}
+                          >
                             <WatermarkedImage
                               src={getImageUrl(img.url)}
                               alt={img.title}
@@ -1571,6 +1603,7 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+      <ImageLightbox image={selectedImage} onClose={() => setSelectedImage(null)} />
     </div>
   )
 }
