@@ -19,14 +19,14 @@ export default function Home() {
         <div className="absolute inset-0 z-0 bg-black">
           <video 
             ref={videoRef}
-            className="w-full h-full object-cover opacity-65"
+            className="w-full h-full object-cover opacity-85"
             autoPlay={true}
             loop={true}
             muted={true}
             playsInline={true}
             poster="/images/hayes/crystal-hayes-front.jpeg"
           >
-            <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1778682220/crystal_intro_video.mp4" type="video/mp4" />
+            <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/q_auto:best/v1778682220/crystal_intro_video.mp4" type="video/mp4" />
           </video>
         </div>
         <div className="absolute inset-x-0 bottom-0 z-[1] h-1/2 bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
@@ -36,7 +36,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-2xl sm:text-3xl md:text-5xl font-serif text-white leading-tight mb-8"
+            className="text-xl sm:text-3xl md:text-5xl font-serif text-white leading-tight mb-6 sm:mb-8"
           >
             Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
           </motion.h1>
@@ -49,13 +49,13 @@ export default function Home() {
           >
             <Link 
               to="/venues"
-              className="px-8 py-4 bg-crystal-gold text-crystal-dark font-medium uppercase tracking-wider hover:bg-white transition-colors duration-300"
+              className="px-6 py-3 sm:px-8 sm:py-4 bg-crystal-gold text-crystal-dark text-xs sm:text-base font-medium uppercase tracking-wider hover:bg-white transition-colors duration-300"
             >
               Explore Venues
             </Link>
             <Link 
               to="/contact"
-              className="px-8 py-4 border border-crystal-gold text-crystal-gold font-medium uppercase tracking-wider hover:bg-crystal-gold hover:text-crystal-dark transition-all duration-300"
+              className="px-6 py-3 sm:px-8 sm:py-4 border border-crystal-gold text-crystal-gold text-xs sm:text-base font-medium uppercase tracking-wider hover:bg-crystal-gold hover:text-crystal-dark transition-all duration-300"
             >
               Book a Viewing
             </Link>
