@@ -7,8 +7,6 @@ const path = require('path');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
 const UPLOAD_DIR = path.join(__dirname, '../public/uploads/gallery');
-const WATERMARK_DIR = path.join(__dirname, '../public/uploads/watermarks');
-const WATERMARK_SOURCE = path.join(__dirname, '../../client/public/crystalLogo.jpeg');
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 const IMAGE_TYPES = {
   'image/jpeg': 'jpg',
@@ -131,79 +129,6 @@ const titleFromFilename = (filename) => {
   return base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Gallery Image';
 };
 
-const escapeXml = (value) => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/"/g, '&quot;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;');
-
-const getImageDimensions = (buffer, contentType) => {
-  if (contentType === 'image/png' && buffer.toString('ascii', 1, 4) === 'PNG') {
-    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
-  }
-
-  if (contentType === 'image/gif') {
-    return { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8) };
-  }
-
-  if (contentType === 'image/webp' && buffer.toString('ascii', 0, 4) === 'RIFF') {
-    const format = buffer.toString('ascii', 12, 16);
-    if (format === 'VP8X') {
-      return {
-        width: 1 + buffer.readUIntLE(24, 3),
-        height: 1 + buffer.readUIntLE(27, 3)
-      };
-    }
-    if (format === 'VP8 ') {
-      return { width: buffer.readUInt16LE(26) & 0x3fff, height: buffer.readUInt16LE(28) & 0x3fff };
-    }
-    if (format === 'VP8L') {
-      const bits = buffer.readUInt32LE(21);
-      return { width: (bits & 0x3fff) + 1, height: ((bits >> 14) & 0x3fff) + 1 };
-    }
-  }
-
-  if (contentType === 'image/jpeg') {
-    let offset = 2;
-    while (offset < buffer.length) {
-      if (buffer[offset] !== 0xff) break;
-      const marker = buffer[offset + 1];
-      const length = buffer.readUInt16BE(offset + 2);
-      if (marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)) {
-        return {
-          width: buffer.readUInt16BE(offset + 7),
-          height: buffer.readUInt16BE(offset + 5)
-        };
-      }
-      offset += 2 + length;
-    }
-  }
-
-  return { width: 1200, height: 800 };
-};
-
-const ensureWatermarkLogo = async () => {
-  await fs.mkdir(WATERMARK_DIR, { recursive: true });
-  const destination = path.join(WATERMARK_DIR, 'crystalLogo.jpeg');
-  const logoBuffer = await fs.readFile(WATERMARK_SOURCE);
-  await fs.writeFile(destination, logoBuffer);
-  return logoBuffer;
-};
-
-const createDataUri = (buffer, contentType) => `data:${contentType};base64,${buffer.toString('base64')}`;
-
-const createWatermarkedSvg = ({ width, height, imageDataUri, watermarkDataUri, title }) => {
-  const watermarkWidth = Math.max(Math.min(Math.round(width * 0.24), 340), 150);
-  const padding = Math.max(Math.round(width * 0.035), 24);
-  const watermarkHeight = Math.round(watermarkWidth * 0.55);
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeXml(title)}">
-  <image href="${imageDataUri}" x="0" y="0" width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice"/>
-  <rect x="${width - watermarkWidth - padding - 12}" y="${height - watermarkHeight - padding - 12}" width="${watermarkWidth + 24}" height="${watermarkHeight + 24}" rx="10" fill="#000000" fill-opacity="0.34"/>
-  <image href="${watermarkDataUri}" x="${width - watermarkWidth - padding}" y="${height - watermarkHeight - padding}" width="${watermarkWidth}" height="${watermarkHeight}" preserveAspectRatio="xMidYMid meet" opacity="0.82"/>
-</svg>`;
-};
-
 // Public: Get all active gallery images (for the website)
 exports.getGallery = async (req, res) => {
   try {
@@ -283,8 +208,6 @@ exports.uploadGalleryImages = async (req, res) => {
     }
 
     await fs.mkdir(UPLOAD_DIR, { recursive: true });
-    const watermarkLogo = await ensureWatermarkLogo();
-    const watermarkDataUri = createDataUri(watermarkLogo, 'image/jpeg');
 
     const createdImages = [];
     for (const [index, file] of files.entries()) {
@@ -294,27 +217,13 @@ exports.uploadGalleryImages = async (req, res) => {
 
       const extension = IMAGE_TYPES[file.contentType];
       const safeName = titleFromFilename(file.filename).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const uploadId = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}`;
-      const originalFilename = `${uploadId}.${extension}`;
-      const watermarkedFilename = `${uploadId}-watermarked.svg`;
-      const watermarkedUrl = `/uploads/gallery/${watermarkedFilename}`;
+      const filename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}.${extension}`;
       const imageTitle = files.length === 1 && fields.title ? fields.title : titleFromFilename(file.filename);
-      const dimensions = getImageDimensions(file.data, file.contentType);
-
-      await fs.writeFile(path.join(UPLOAD_DIR, originalFilename), file.data);
-      await fs.writeFile(
-        path.join(UPLOAD_DIR, watermarkedFilename),
-        createWatermarkedSvg({
-          ...dimensions,
-          imageDataUri: createDataUri(file.data, file.contentType),
-          watermarkDataUri,
-          title: imageTitle
-        })
-      );
+      await fs.writeFile(path.join(UPLOAD_DIR, filename), file.data);
 
       const image = await prisma.galleryImage.create({
         data: {
-          url: watermarkedUrl,
+          url: `/uploads/gallery/${filename}`,
           title: imageTitle,
           category,
           sortOrder: sortOrder + index,

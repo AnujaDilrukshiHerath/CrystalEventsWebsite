@@ -49,6 +49,47 @@ const GALLERY_CATEGORIES = [
   'Floral Decoration'
 ]
 
+const loadImage = (src) => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error('Could not load watermark logo'))
+  image.src = src
+})
+
+const createWatermarkedFile = async (file) => {
+  const [sourceImage, logoImage] = await Promise.all([
+    loadImage(URL.createObjectURL(file)),
+    loadImage('/crystalLogo.jpeg')
+  ])
+
+  const canvas = document.createElement('canvas')
+  canvas.width = sourceImage.naturalWidth || sourceImage.width
+  canvas.height = sourceImage.naturalHeight || sourceImage.height
+
+  const ctx = canvas.getContext('2d')
+  ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height)
+
+  const watermarkWidth = Math.max(Math.min(Math.round(canvas.width * 0.24), 340), 150)
+  const watermarkHeight = Math.round(watermarkWidth * (logoImage.naturalHeight / logoImage.naturalWidth))
+  const padding = Math.max(Math.round(canvas.width * 0.035), 24)
+  const x = canvas.width - watermarkWidth - padding
+  const y = canvas.height - watermarkHeight - padding
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.34)'
+  ctx.fillRect(x - 12, y - 12, watermarkWidth + 24, watermarkHeight + 24)
+  ctx.globalAlpha = 0.82
+  ctx.drawImage(logoImage, x, y, watermarkWidth, watermarkHeight)
+  ctx.globalAlpha = 1
+
+  URL.revokeObjectURL(sourceImage.src)
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  if (!blob) throw new Error('Could not prepare watermarked image')
+
+  const filename = file.name.replace(/\.[^.]+$/, '') + '-watermarked.jpg'
+  return new File([blob], filename, { type: 'image/jpeg' })
+}
+
 export default function AdminDashboard() {
 
   const navigate = useNavigate()
@@ -60,6 +101,8 @@ export default function AdminDashboard() {
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null })
   const [galleryFilter, setGalleryFilter] = useState('all')
   const [galleryFiles, setGalleryFiles] = useState([])
+  const [galleryError, setGalleryError] = useState('')
+  const [isWatermarking, setIsWatermarking] = useState(false)
 
 
   // Auth Check
@@ -127,14 +170,19 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify(imageData)
       })
-      if (!res.ok) throw new Error('Failed to add image')
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.message || 'Failed to add image')
+      }
       return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
+      setGalleryError('')
       setGalleryModal({ isOpen: false, data: null })
-    }
+    },
+    onError: (error) => setGalleryError(error.message)
   })
 
   const uploadGalleryMutation = useMutation({
@@ -146,14 +194,19 @@ export default function AdminDashboard() {
         },
         body: formData
       })
-      if (!res.ok) throw new Error('Failed to upload image')
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.message || 'Failed to upload image')
+      }
       return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
+      setGalleryError('')
       setGalleryModal({ isOpen: false, data: null })
-    }
+    },
+    onError: (error) => setGalleryError(error.message)
   })
 
   const updateGalleryMutation = useMutation({
@@ -166,14 +219,19 @@ export default function AdminDashboard() {
         },
         body: JSON.stringify(data)
       })
-      if (!res.ok) throw new Error('Failed to update image')
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        throw new Error(error.message || 'Failed to update image')
+      }
       return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['adminGallery'] })
       setGalleryFiles([])
+      setGalleryError('')
       setGalleryModal({ isOpen: false, data: null })
-    }
+    },
+    onError: (error) => setGalleryError(error.message)
   })
 
   const deleteGalleryMutation = useMutation({
@@ -720,7 +778,7 @@ export default function AdminDashboard() {
                     <div className="text-xl font-bold text-crystal-blue">{galleryImages?.length || 0}</div>
                   </div>
                   <button
-                    onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: true, data: null }) }}
+                    onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: null }) }}
                     className="flex items-center gap-2 px-6 py-3 bg-crystal-gold text-white text-xs uppercase tracking-widest font-bold hover:bg-crystal-dark transition-all shadow-md"
                   >
                     <Plus size={16} /> Add Image
@@ -779,7 +837,7 @@ export default function AdminDashboard() {
                                 {img.active ? <Eye size={14} /> : <EyeOff size={14} />}
                               </button>
                               <button
-                                onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: true, data: img }) }}
+                                onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: true, data: img }) }}
                                 className="p-1.5 text-crystal-blue hover:bg-blue-50 rounded transition-colors"
                                 title="Edit Image"
                               >
@@ -1111,19 +1169,28 @@ export default function AdminDashboard() {
             <h2 className="text-3xl font-serif text-crystal-blue mb-8">
               {galleryModal.data ? 'Edit Image' : 'Add New Image'}
             </h2>
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
+              setGalleryError('');
               const formData = new FormData(e.target);
               const selectedCategory = formData.get('category');
               const category = selectedCategory === '__custom__'
                 ? formData.get('customCategory')
                 : selectedCategory;
               if (!galleryModal.data && galleryFiles.length > 0) {
-                formData.delete('images');
-                galleryFiles.forEach((file) => formData.append('images', file));
-                formData.set('category', category);
-                formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
-                uploadGalleryMutation.mutate(formData);
+                try {
+                  setIsWatermarking(true);
+                  const watermarkedFiles = await Promise.all(galleryFiles.map(createWatermarkedFile));
+                  formData.delete('images');
+                  watermarkedFiles.forEach((file) => formData.append('images', file));
+                  formData.set('category', category);
+                  formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
+                  uploadGalleryMutation.mutate(formData);
+                } catch (error) {
+                  setGalleryError(error.message || 'Could not prepare image watermark');
+                } finally {
+                  setIsWatermarking(false);
+                }
                 return;
               }
 
@@ -1141,6 +1208,12 @@ export default function AdminDashboard() {
                 createGalleryMutation.mutate(data);
               }
             }} className="space-y-6">
+              {galleryError && (
+                <div className="bg-red-50 border border-red-100 text-red-600 text-sm px-4 py-3">
+                  {galleryError}
+                </div>
+              )}
+
               {!galleryModal.data && (
                 <div>
                   <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Drop Image Files</label>
@@ -1212,8 +1285,8 @@ export default function AdminDashboard() {
                 <input
                   name="title"
                   defaultValue={galleryModal.data?.title}
-                  required={galleryModal.data || galleryFiles.length <= 1}
-                  placeholder="e.g. Grand Ballroom Setup"
+                  required={galleryModal.data || galleryFiles.length === 0}
+                  placeholder={galleryFiles.length > 0 ? 'Optional - filename is used if empty' : 'e.g. Grand Ballroom Setup'}
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                 />
               </div>
@@ -1273,17 +1346,17 @@ export default function AdminDashboard() {
               <div className="pt-6 flex gap-4">
                 <button
                   type="button"
-                  onClick={() => { setGalleryFiles([]); setGalleryModal({ isOpen: false, data: null }) }}
+                  onClick={() => { setGalleryFiles([]); setGalleryError(''); setGalleryModal({ isOpen: false, data: null }) }}
                   className="w-full py-4 border border-gray-200 text-gray-400 uppercase tracking-widest font-bold text-xs hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={createGalleryMutation.isPending || updateGalleryMutation.isPending || uploadGalleryMutation.isPending}
+                  disabled={isWatermarking || createGalleryMutation.isPending || updateGalleryMutation.isPending || uploadGalleryMutation.isPending}
                   className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg disabled:opacity-50"
                 >
-                  {galleryModal.data ? 'Update Image' : galleryFiles.length > 0 ? 'Upload Image' : 'Add Image'}
+                  {galleryModal.data ? 'Update Image' : isWatermarking ? 'Adding Watermark...' : galleryFiles.length > 0 ? 'Upload Image' : 'Add Image'}
                 </button>
               </div>
             </form>
