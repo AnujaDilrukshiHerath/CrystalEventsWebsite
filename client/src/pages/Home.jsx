@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <div className="pt-20">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[calc(100vh-5rem)] flex items-end justify-center overflow-hidden pb-10 md:pb-16">
         <div className="absolute inset-0 z-0 bg-black">
           <video 
             ref={videoRef}
@@ -29,16 +29,22 @@ export default function Home() {
             <source src="https://res.cloudinary.com/dcekxtu0a/video/upload/v1778682220/crystal_intro_video.mp4" type="video/mp4" />
           </video>
         </div>
-        
-        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto mt-8 md:mt-20">
+        <div className="absolute inset-x-0 bottom-0 z-[1] h-1/2 bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
 
-          
-
-          
-          <motion.div
+        <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
+          <motion.h1
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
+            className="text-2xl sm:text-3xl md:text-5xl font-serif text-white leading-tight mb-8"
+          >
+            Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
+          </motion.h1>
+
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
             className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center"
           >
             <Link 
@@ -54,15 +60,6 @@ export default function Home() {
               Book a Viewing
             </Link>
           </motion.div>
-
-          <motion.h1 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-12 text-2xl sm:text-3xl md:text-5xl font-serif text-white leading-tight"
-          >
-            Unforgettable Moments in <br className="md:hidden" /><span className="text-crystal-gold italic">Extraordinary Spaces</span>
-          </motion.h1>
         </div>
       </section>
 
