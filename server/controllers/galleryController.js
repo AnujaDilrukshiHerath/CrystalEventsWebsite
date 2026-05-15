@@ -1,19 +1,11 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const fs = require('fs/promises');
 const path = require('path');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
-const UPLOAD_DIR = path.join(__dirname, '../public/uploads/gallery');
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
-const IMAGE_TYPES = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/gif': 'gif'
-};
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 const INTERNAL_CATEGORY_PREFIX = 'Internal: ';
 const LEGACY_INTERNAL_CATEGORIES = [
@@ -164,6 +156,8 @@ const titleFromFilename = (filename) => {
   return base.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim() || 'Gallery Image';
 };
 
+const toDataUrl = (file) => `data:${file.contentType};base64,${file.data.toString('base64')}`;
+
 // Public: Get all active gallery images (for the website)
 exports.getGallery = async (req, res) => {
   try {
@@ -260,23 +254,17 @@ exports.uploadGalleryImages = async (req, res) => {
       return res.status(400).json({ message: 'Category and at least one image file are required' });
     }
 
-    await fs.mkdir(UPLOAD_DIR, { recursive: true });
-
     const createdImages = [];
     for (const [index, file] of files.entries()) {
-      if (!IMAGE_TYPES[file.contentType]) {
+      if (!IMAGE_TYPES.includes(file.contentType)) {
         return res.status(400).json({ message: 'Only JPG, PNG, WebP, and GIF images are supported' });
       }
 
-      const extension = IMAGE_TYPES[file.contentType];
-      const safeName = titleFromFilename(file.filename).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      const filename = `${Date.now()}-${crypto.randomBytes(4).toString('hex')}-${safeName}.${extension}`;
       const imageTitle = files.length === 1 && fields.title ? fields.title : titleFromFilename(file.filename);
-      await fs.writeFile(path.join(UPLOAD_DIR, filename), file.data);
 
       const image = await prisma.galleryImage.create({
         data: {
-          url: `/uploads/gallery/${filename}`,
+          url: toDataUrl(file),
           title: imageTitle,
           category,
           sortOrder: sortOrder + index,
