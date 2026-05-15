@@ -15,6 +15,16 @@ const IMAGE_TYPES = {
   'image/gif': 'gif'
 };
 
+const INTERNAL_CATEGORIES = [
+  'Team Showcase',
+  'Sales Showcase',
+  'Slough Team Showcase',
+  'Wembley Team Showcase',
+  'Hayes Team Showcase'
+];
+
+const isInternalCategory = (category = '') => INTERNAL_CATEGORIES.includes(category);
+
 const verifyAdmin = (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.split(' ')[1];
@@ -26,6 +36,28 @@ const verifyAdmin = (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded.role !== 'admin') {
+      res.status(403).json({ message: 'Forbidden' });
+      return null;
+    }
+    return decoded;
+  } catch (error) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return null;
+  }
+};
+
+const verifyPortalUser = (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const allowed = decoded.role === 'admin' || decoded.role === 'sales' || decoded.role?.startsWith('branch-');
+    if (!allowed) {
       res.status(403).json({ message: 'Forbidden' });
       return null;
     }
@@ -136,6 +168,7 @@ exports.getGallery = async (req, res) => {
       where: { active: true },
       orderBy: { sortOrder: 'asc' }
     });
+    images = images.filter((image) => !isInternalCategory(image.category));
     if (req.query.category) {
       images = images.filter((image) => image.category === req.query.category);
     }
@@ -147,6 +180,33 @@ exports.getGallery = async (req, res) => {
   } catch (error) {
     console.error('Error fetching gallery:', error);
     res.status(500).json({ message: 'Error fetching gallery', error: error.message });
+  }
+};
+
+// Protected: Get internal-only images for sales and branch portals
+exports.getTeamGallery = async (req, res) => {
+  try {
+    const user = verifyPortalUser(req, res);
+    if (!user) return;
+
+    let allowedCategories = INTERNAL_CATEGORIES;
+    if (user.role?.startsWith('branch-')) {
+      const branchName = user.role.replace('branch-', '');
+      const branchLabel = branchName.charAt(0).toUpperCase() + branchName.slice(1);
+      allowedCategories = ['Team Showcase', `${branchLabel} Team Showcase`];
+    }
+
+    const images = await prisma.galleryImage.findMany({
+      where: {
+        category: { in: allowedCategories }
+      },
+      orderBy: { sortOrder: 'asc' }
+    });
+
+    res.status(200).json(images);
+  } catch (error) {
+    console.error('Error fetching team gallery:', error);
+    res.status(500).json({ message: 'Error fetching team gallery' });
   }
 };
 
@@ -182,7 +242,7 @@ exports.createGalleryImage = async (req, res) => {
         title,
         category,
         sortOrder: sortOrder !== undefined ? parseInt(sortOrder) : 0,
-        active: normalizeBoolean(active)
+        active: isInternalCategory(category) ? false : normalizeBoolean(active)
       }
     });
 
@@ -201,7 +261,7 @@ exports.uploadGalleryImages = async (req, res) => {
     const { fields, files } = await parseMultipartForm(req);
     const category = fields.customCategory || fields.category;
     const sortOrder = parseInt(fields.sortOrder || '0');
-    const active = normalizeBoolean(fields.active);
+    const active = isInternalCategory(category) ? false : normalizeBoolean(fields.active);
 
     if (!category || files.length === 0) {
       return res.status(400).json({ message: 'Category and at least one image file are required' });
@@ -255,6 +315,7 @@ exports.updateGalleryImage = async (req, res) => {
     if (category !== undefined) updateData.category = category;
     if (sortOrder !== undefined) updateData.sortOrder = parseInt(sortOrder);
     if (active !== undefined) updateData.active = normalizeBoolean(active);
+    if (category !== undefined && isInternalCategory(category)) updateData.active = false;
 
     const image = await prisma.galleryImage.update({
       where: { id },

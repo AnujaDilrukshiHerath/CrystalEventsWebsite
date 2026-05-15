@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Mail, Phone, LogOut, RefreshCw } from 'lucide-react'
 import { getApiUrl } from '../../utils/api'
 import Logo from '../../components/common/Logo'
+import TeamImageLibrary from '../../components/common/TeamImageLibrary'
 
 export default function BranchDashboard() {
   const { branch } = useParams() // 'slough' or 'wembley'
@@ -90,6 +91,14 @@ export default function BranchDashboard() {
               <LogOut size={14} /> Logout
             </button>
           </div>
+        </div>
+
+        <div className="mb-10">
+          <TeamImageLibrary
+            tokenKey="branchToken"
+            queryKey={`branch-team-gallery-${branch}`}
+            title={`${branchLabel} Customer Showcase`}
+          />
         </div>
 
         {/* Enquiries Table */}

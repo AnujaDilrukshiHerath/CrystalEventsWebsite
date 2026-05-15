@@ -47,8 +47,23 @@ const GALLERY_CATEGORIES = [
   'Wedding Decoration',
   'Stage Decoration',
   'Table Decoration',
-  'Floral Decoration'
+  'Floral Decoration',
+  'Team Showcase',
+  'Sales Showcase',
+  'Slough Team Showcase',
+  'Wembley Team Showcase',
+  'Hayes Team Showcase'
 ]
+
+const INTERNAL_CATEGORIES = [
+  'Team Showcase',
+  'Sales Showcase',
+  'Slough Team Showcase',
+  'Wembley Team Showcase',
+  'Hayes Team Showcase'
+]
+
+const isInternalCategory = (category) => INTERNAL_CATEGORIES.includes(category)
 
 export default function AdminDashboard() {
 
@@ -1137,11 +1152,12 @@ export default function AdminDashboard() {
               const category = selectedCategory === '__custom__'
                 ? formData.get('customCategory')
                 : selectedCategory;
+              const internalImage = isInternalCategory(category);
               if (!galleryModal.data && galleryFiles.length > 0) {
                 formData.delete('images');
                 galleryFiles.forEach((file) => formData.append('images', file));
                 formData.set('category', category);
-                formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
+                formData.set('active', internalImage ? 'false' : formData.get('active') === 'on' ? 'true' : 'false');
                 uploadGalleryMutation.mutate(formData);
                 return;
               }
@@ -1151,7 +1167,7 @@ export default function AdminDashboard() {
                 title: formData.get('title'),
                 category,
                 sortOrder: parseInt(formData.get('sortOrder') || '0'),
-                active: formData.get('active') === 'on'
+                active: internalImage ? false : formData.get('active') === 'on'
               };
 
               if (galleryModal.data) {
@@ -1294,6 +1310,9 @@ export default function AdminDashboard() {
                 />
                 <label className="text-xs font-bold uppercase text-gray-500">Show on website</label>
               </div>
+              <p className="text-[10px] text-gray-400 -mt-4">
+                Team Showcase categories are kept internal for admin, sales, and branch portals even if this is checked.
+              </p>
 
               {/* Buttons */}
               <div className="pt-6 flex gap-4">

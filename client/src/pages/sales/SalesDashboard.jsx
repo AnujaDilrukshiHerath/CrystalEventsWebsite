@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { getApiUrl } from '../../utils/api'
+import TeamImageLibrary from '../../components/common/TeamImageLibrary'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
@@ -96,7 +97,7 @@ export default function SalesDashboard() {
           {[
             { id: 'calendar', label: 'Event Calendar', icon: CalendarIcon },
             { id: 'enquiries', label: 'Recent Enquiries', icon: Mail },
-            { id: 'decorations', label: 'Decorations (Coming Soon)', icon: Layout }
+            { id: 'showcase', label: 'Customer Showcase', icon: Layout }
           ].map(tab => (
             <button
               key={tab.id}
@@ -278,10 +279,8 @@ export default function SalesDashboard() {
             </div>
           )}
 
-          {activeTab === 'decorations' && (
-            <div className="bg-white p-20 text-center shadow-xl border-t-4 border-crystal-gold rounded-sm italic text-gray-400 font-serif text-2xl">
-              Decoration Management System Coming Soon...
-            </div>
+          {activeTab === 'showcase' && (
+            <TeamImageLibrary title="Sales Customer Showcase" />
           )}
         </div>
       </div>
