@@ -1156,6 +1156,7 @@ export default function AdminDashboard() {
                     <div>
                       <div className="text-sm font-semibold text-crystal-blue">Drop images here or click to choose</div>
                       <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF</div>
+                      <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">Logo watermark added automatically</div>
                     </div>
                     <input
                       name="images"
