@@ -5,6 +5,16 @@ import { getApiUrl } from '../utils/api'
 import { getImageUrl } from '../utils/media'
 import WatermarkedImage from '../components/common/WatermarkedImage'
 
+const CATEGORY_SEPARATOR = ' :: '
+
+const splitCategory = (category = '') => {
+  const [mainCategory, ...subCategoryParts] = category.split(CATEGORY_SEPARATOR)
+  return {
+    mainCategory: mainCategory || '',
+    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+  }
+}
+
 export default function Decorations() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
@@ -16,8 +26,8 @@ export default function Decorations() {
     }
   })
 
-  const categories = ['all', ...new Set(images?.map((image) => image.category) || [])]
-  const filteredImages = images?.filter((image) => selectedCategory === 'all' || image.category === selectedCategory)
+  const categories = ['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
+  const filteredImages = images?.filter((image) => selectedCategory === 'all' || splitCategory(image.category).mainCategory === selectedCategory)
 
   if (isLoading) {
     return (
@@ -79,7 +89,10 @@ export default function Decorations() {
                   />
                 </div>
                 <div className="p-5">
-                  <div className="text-crystal-gold text-[10px] font-bold uppercase tracking-widest mb-2">{image.category}</div>
+                  <div className="text-crystal-gold text-[10px] font-bold uppercase tracking-widest mb-2">{splitCategory(image.category).mainCategory}</div>
+                  {splitCategory(image.category).subCategory && (
+                    <div className="text-xs text-gray-400 mb-2">{splitCategory(image.category).subCategory}</div>
+                  )}
                   <h2 className="text-lg font-serif text-crystal-blue">{image.title}</h2>
                 </div>
               </motion.div>

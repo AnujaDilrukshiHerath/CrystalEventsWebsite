@@ -51,6 +51,7 @@ const GALLERY_CATEGORIES = [
 ]
 
 const INTERNAL_CATEGORY_PREFIX = 'Internal: '
+const CATEGORY_SEPARATOR = ' :: '
 const LEGACY_INTERNAL_CATEGORIES = [
   'Team Showcase',
   'Sales Showcase',
@@ -66,6 +67,21 @@ const isInternalCategory = (category = '') => (
 const formatInternalCategory = (category = '') => (
   category.startsWith(INTERNAL_CATEGORY_PREFIX) ? category.slice(INTERNAL_CATEGORY_PREFIX.length) : category
 )
+
+const splitCategory = (category = '') => {
+  const visibleCategory = formatInternalCategory(category)
+  const [mainCategory, ...subCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
+  return {
+    mainCategory: mainCategory || '',
+    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+  }
+}
+
+const composeCategory = (mainCategory = '', subCategory = '') => {
+  const cleanCategory = mainCategory.trim()
+  const cleanSubCategory = subCategory.trim()
+  return cleanSubCategory ? `${cleanCategory}${CATEGORY_SEPARATOR}${cleanSubCategory}` : cleanCategory
+}
 
 const toInternalCategory = (category = '') => {
   const cleanCategory = category.trim()
@@ -404,8 +420,10 @@ export default function AdminDashboard() {
   }
 
   const modalIsInternal = galleryModal.type === 'internal' || isInternalCategory(galleryModal.data?.category)
-  const modalDefaultCategory = galleryModal.data?.category || 'Venue'
-  const modalDefaultInternalCategory = formatInternalCategory(galleryModal.data?.category) || ''
+  const modalCategoryParts = splitCategory(galleryModal.data?.category)
+  const modalDefaultCategory = modalCategoryParts.mainCategory || 'Venue'
+  const modalDefaultSubCategory = modalCategoryParts.subCategory || ''
+  const modalDefaultInternalCategory = modalCategoryParts.mainCategory || ''
 
   return (
     <div className="pt-32 pb-24 min-h-screen bg-gray-50">
@@ -759,7 +777,7 @@ export default function AdminDashboard() {
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     <option value="all">All Categories</option>
-                    {[...new Set(websiteImages.map(i => i.category))].map(cat => (
+                    {[...new Set(websiteImages.map(i => splitCategory(i.category).mainCategory))].map(cat => (
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
@@ -783,7 +801,7 @@ export default function AdminDashboard() {
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                   <h2 className="text-xl font-serif text-crystal-blue">Website Gallery & Decoration Images</h2>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
-                    {websiteImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length} Images
+                    {websiteImages.filter(i => galleryFilter === 'all' || splitCategory(i.category).mainCategory === galleryFilter).length} Images
                   </span>
                 </div>
 
@@ -794,7 +812,7 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
                     {websiteImages
-                      ?.filter(img => galleryFilter === 'all' || img.category === galleryFilter)
+                      ?.filter(img => galleryFilter === 'all' || splitCategory(img.category).mainCategory === galleryFilter)
                       .map(img => (
                         <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
                           {/* Image Preview */}
@@ -813,7 +831,10 @@ export default function AdminDashboard() {
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <h3 className="text-sm font-semibold text-crystal-dark truncate" title={img.title}>{img.title}</h3>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{img.category}</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{splitCategory(img.category).mainCategory}</span>
+                                {splitCategory(img.category).subCategory && (
+                                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).subCategory}</div>
+                                )}
                               </div>
                               {!img.active && (
                                 <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-red-50 text-red-500 rounded-full">Hidden</span>
@@ -859,7 +880,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {!loadingGallery && websiteImages.filter(i => galleryFilter === 'all' || i.category === galleryFilter).length === 0 && (
+                {!loadingGallery && websiteImages.filter(i => galleryFilter === 'all' || splitCategory(i.category).mainCategory === galleryFilter).length === 0 && (
                   <div className="p-16 text-center">
                     <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-gray-400 text-sm">No images yet. Click "Add Image" to get started.</p>
@@ -880,8 +901,8 @@ export default function AdminDashboard() {
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     <option value="all">All Internal Images</option>
-                    {[...new Set(teamImages.map(i => i.category))].map(cat => (
-                      <option key={cat} value={cat}>{formatInternalCategory(cat)}</option>
+                    {[...new Set(teamImages.map(i => splitCategory(i.category).mainCategory))].map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
                 </div>
@@ -906,7 +927,7 @@ export default function AdminDashboard() {
                     <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Only visible in admin, sales, and branch portals</p>
                   </div>
                   <span className="text-xs text-gray-400 uppercase tracking-widest">
-                    {teamImages.filter(i => teamImageFilter === 'all' || i.category === teamImageFilter).length} Images
+                    {teamImages.filter(i => teamImageFilter === 'all' || splitCategory(i.category).mainCategory === teamImageFilter).length} Images
                   </span>
                 </div>
 
@@ -917,7 +938,7 @@ export default function AdminDashboard() {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-0">
                     {teamImages
-                      .filter(img => teamImageFilter === 'all' || img.category === teamImageFilter)
+                      .filter(img => teamImageFilter === 'all' || splitCategory(img.category).mainCategory === teamImageFilter)
                       .map(img => (
                         <div key={img.id} className="relative group border border-gray-50">
                           <div className="aspect-square overflow-hidden bg-gray-100">
@@ -934,7 +955,10 @@ export default function AdminDashboard() {
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <h3 className="text-sm font-semibold text-crystal-dark truncate" title={img.title}>{img.title}</h3>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{formatInternalCategory(img.category)}</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{splitCategory(img.category).mainCategory}</span>
+                                {splitCategory(img.category).subCategory && (
+                                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).subCategory}</div>
+                                )}
                               </div>
                               <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-blue-50 text-crystal-blue rounded-full">Internal</span>
                             </div>
@@ -970,7 +994,7 @@ export default function AdminDashboard() {
                   </div>
                 )}
 
-                {!loadingGallery && teamImages.filter(i => teamImageFilter === 'all' || i.category === teamImageFilter).length === 0 && (
+                {!loadingGallery && teamImages.filter(i => teamImageFilter === 'all' || splitCategory(i.category).mainCategory === teamImageFilter).length === 0 && (
                   <div className="p-16 text-center">
                     <ImageIcon size={48} className="mx-auto text-gray-200 mb-4" />
                     <p className="text-gray-400 text-sm">No internal images yet. Click "Add Internal Image" to get started.</p>
@@ -1278,12 +1302,15 @@ export default function AdminDashboard() {
               setGalleryError('');
               const formData = new FormData(e.target);
               const selectedCategory = formData.get('category');
+              const subCategory = formData.get('subCategory') || '';
               const rawCategory = modalIsInternal
                 ? formData.get('internalCategory')
                 : selectedCategory === '__custom__'
                   ? formData.get('customCategory')
                   : selectedCategory;
-              const category = modalIsInternal ? toInternalCategory(rawCategory) : rawCategory;
+              const category = modalIsInternal
+                ? toInternalCategory(composeCategory(rawCategory, subCategory))
+                : composeCategory(rawCategory, subCategory);
               const internalImage = modalIsInternal || isInternalCategory(category);
               if (!galleryModal.data && galleryFiles.length > 0) {
                 formData.delete('images');
@@ -1294,13 +1321,16 @@ export default function AdminDashboard() {
                 return;
               }
 
+              const enteredUrl = formData.get('url');
               const data = {
-                url: formData.get('url'),
                 title: formData.get('title'),
                 category,
                 sortOrder: parseInt(formData.get('sortOrder') || '0'),
                 active: internalImage ? false : formData.get('active') === 'on'
               };
+              if (!galleryModal.data || (enteredUrl && enteredUrl !== galleryModal.data.url)) {
+                data.url = enteredUrl;
+              }
 
               if (galleryModal.data) {
                 updateGalleryMutation.mutate({ id: galleryModal.data.id, ...data });
@@ -1357,12 +1387,12 @@ export default function AdminDashboard() {
 
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-                  Image URL {galleryModal.data || galleryFiles.length === 0 ? '*' : '(optional)'}
+                  Image URL {galleryModal.data ? '(optional - leave blank to keep current image)' : galleryFiles.length === 0 ? '*' : '(optional)'}
                 </label>
                 <input
                   name="url"
-                  defaultValue={galleryModal.data?.url}
-                  required={galleryModal.data || galleryFiles.length === 0}
+                  defaultValue=""
+                  required={!galleryModal.data && galleryFiles.length === 0}
                   placeholder="https://... or /images/gallery/filename.jpeg"
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                 />
@@ -1419,7 +1449,7 @@ export default function AdminDashboard() {
                         }
                       }}
                     >
-                      {[...new Set([...GALLERY_CATEGORIES, galleryModal.data?.category].filter(Boolean))].map((category) => (
+                      {[...new Set([...GALLERY_CATEGORIES, modalCategoryParts.mainCategory].filter(Boolean))].map((category) => (
                         <option key={category} value={category}>{category}</option>
                       ))}
                       <option value="__custom__">Other (type below)</option>
@@ -1432,6 +1462,17 @@ export default function AdminDashboard() {
                     />
                   </>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Subcategory</label>
+                <input
+                  name="subCategory"
+                  defaultValue={modalDefaultSubCategory}
+                  placeholder="e.g. Mandap, Head table, Stage backdrop"
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                />
+                <p className="text-[10px] text-gray-400 mt-1">Optional. Use this to group images inside a category.</p>
               </div>
 
               {/* Sort Order */}

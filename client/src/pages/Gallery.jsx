@@ -5,6 +5,16 @@ import { getApiUrl } from '../utils/api'
 import { getImageUrl } from '../utils/media'
 import WatermarkedImage from '../components/common/WatermarkedImage'
 
+const CATEGORY_SEPARATOR = ' :: '
+
+const splitCategory = (category = '') => {
+  const [mainCategory, ...subCategoryParts] = category.split(CATEGORY_SEPARATOR)
+  return {
+    mainCategory: mainCategory || '',
+    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+  }
+}
+
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
@@ -39,7 +49,7 @@ export default function Gallery() {
       </motion.div>
 
       <div className="flex flex-wrap justify-center gap-3 mb-10">
-        {['all', ...new Set(images?.map((image) => image.category) || [])].map((category) => (
+        {['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])].map((category) => (
           <button
             key={category}
             onClick={() => setSelectedCategory(category)}
@@ -56,7 +66,7 @@ export default function Gallery() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {images
-          ?.filter((image) => selectedCategory === 'all' || image.category === selectedCategory)
+          ?.filter((image) => selectedCategory === 'all' || splitCategory(image.category).mainCategory === selectedCategory)
           .map((image, index) => (
           <motion.div 
             key={image.id}
@@ -74,7 +84,10 @@ export default function Gallery() {
               watermarkClassName="right-4 bottom-4"
             />
             <div className="absolute inset-0 z-20 bg-crystal-dark/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center">
-              <span className="text-crystal-gold text-xs uppercase tracking-widest mb-2">{image.category}</span>
+              <span className="text-crystal-gold text-xs uppercase tracking-widest mb-2">{splitCategory(image.category).mainCategory}</span>
+              {splitCategory(image.category).subCategory && (
+                <span className="text-gray-200 text-xs mb-2">{splitCategory(image.category).subCategory}</span>
+              )}
               <h3 className="text-white text-lg font-serif">{image.title}</h3>
             </div>
           </motion.div>

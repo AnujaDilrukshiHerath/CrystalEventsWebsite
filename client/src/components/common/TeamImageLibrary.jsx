@@ -6,10 +6,20 @@ import { getImageUrl } from '../../utils/media'
 import WatermarkedImage from './WatermarkedImage'
 
 const INTERNAL_CATEGORY_PREFIX = 'Internal: '
+const CATEGORY_SEPARATOR = ' :: '
 
 const formatInternalCategory = (category = '') => (
   category.startsWith(INTERNAL_CATEGORY_PREFIX) ? category.slice(INTERNAL_CATEGORY_PREFIX.length) : category
 )
+
+const splitCategory = (category = '') => {
+  const visibleCategory = formatInternalCategory(category)
+  const [mainCategory, ...subCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
+  return {
+    mainCategory: mainCategory || '',
+    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+  }
+}
 
 export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = 'team-gallery', title = 'Customer Showcase' }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -24,8 +34,8 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
     }
   })
 
-  const categories = ['all', ...new Set(images?.map((image) => image.category) || [])]
-  const visibleImages = images?.filter((image) => selectedCategory === 'all' || image.category === selectedCategory)
+  const categories = ['all', ...new Set(images?.map((image) => splitCategory(image.category).mainCategory) || [])]
+  const visibleImages = images?.filter((image) => selectedCategory === 'all' || splitCategory(image.category).mainCategory === selectedCategory)
 
   return (
     <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
@@ -40,7 +50,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
           className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
         >
           {categories.map((category) => (
-            <option key={category} value={category}>{category === 'all' ? 'All Images' : formatInternalCategory(category)}</option>
+            <option key={category} value={category}>{category === 'all' ? 'All Images' : category}</option>
           ))}
         </select>
       </div>
@@ -61,7 +71,10 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
                 />
               </div>
               <div className="p-4">
-                <div className="text-[10px] uppercase tracking-widest text-crystal-gold font-bold">{formatInternalCategory(image.category)}</div>
+                <div className="text-[10px] uppercase tracking-widest text-crystal-gold font-bold">{splitCategory(image.category).mainCategory}</div>
+                {splitCategory(image.category).subCategory && (
+                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(image.category).subCategory}</div>
+                )}
                 <h3 className="text-sm font-semibold text-crystal-dark mt-1">{image.title}</h3>
               </div>
             </div>
