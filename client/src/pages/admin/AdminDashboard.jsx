@@ -49,24 +49,62 @@ const GALLERY_CATEGORIES = [
   'Floral Decoration'
 ]
 
-const loadImage = (src) => new Promise((resolve, reject) => {
+const SUPPORTED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const MAX_WATERMARK_DIMENSION = 2400
+
+const loadImage = (src, errorMessage = 'Could not load image') => new Promise((resolve, reject) => {
   const image = new Image()
   image.onload = () => resolve(image)
-  image.onerror = () => reject(new Error('Could not load watermark logo'))
+  image.onerror = () => reject(new Error(errorMessage))
   image.src = src
 })
 
+const canvasToBlob = async (canvas) => {
+  const blob = await new Promise((resolve) => {
+    if (canvas.toBlob) {
+      canvas.toBlob(resolve, 'image/jpeg', 0.9)
+      return
+    }
+
+    resolve(null)
+  })
+
+  if (blob) return blob
+
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
+  const response = await fetch(dataUrl)
+  return response.blob()
+}
+
 const createWatermarkedFile = async (file) => {
+  if (!SUPPORTED_UPLOAD_TYPES.includes(file.type)) {
+    throw new Error(`${file.name} is not supported. Please upload JPG, PNG, WebP, or GIF images.`)
+  }
+
+  const objectUrl = URL.createObjectURL(file)
   const [sourceImage, logoImage] = await Promise.all([
-    loadImage(URL.createObjectURL(file)),
-    loadImage('/crystalLogo.jpeg')
+    loadImage(objectUrl, `Could not load ${file.name}`),
+    loadImage('/crystalLogo.jpeg', 'Could not load Crystal logo watermark')
   ])
 
+  const sourceWidth = sourceImage.naturalWidth || sourceImage.width
+  const sourceHeight = sourceImage.naturalHeight || sourceImage.height
+  if (!sourceWidth || !sourceHeight) {
+    URL.revokeObjectURL(objectUrl)
+    throw new Error(`Could not read the size of ${file.name}`)
+  }
+
+  const scale = Math.min(1, MAX_WATERMARK_DIMENSION / Math.max(sourceWidth, sourceHeight))
   const canvas = document.createElement('canvas')
-  canvas.width = sourceImage.naturalWidth || sourceImage.width
-  canvas.height = sourceImage.naturalHeight || sourceImage.height
+  canvas.width = Math.round(sourceWidth * scale)
+  canvas.height = Math.round(sourceHeight * scale)
 
   const ctx = canvas.getContext('2d')
+  if (!ctx) {
+    URL.revokeObjectURL(objectUrl)
+    throw new Error('Could not prepare image editor in this browser')
+  }
+
   ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height)
 
   const watermarkWidth = Math.max(Math.min(Math.round(canvas.width * 0.24), 340), 150)
@@ -81,9 +119,9 @@ const createWatermarkedFile = async (file) => {
   ctx.drawImage(logoImage, x, y, watermarkWidth, watermarkHeight)
   ctx.globalAlpha = 1
 
-  URL.revokeObjectURL(sourceImage.src)
+  URL.revokeObjectURL(objectUrl)
 
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.9))
+  const blob = await canvasToBlob(canvas)
   if (!blob) throw new Error('Could not prepare watermarked image')
 
   const filename = file.name.replace(/\.[^.]+$/, '') + '-watermarked.jpg'
