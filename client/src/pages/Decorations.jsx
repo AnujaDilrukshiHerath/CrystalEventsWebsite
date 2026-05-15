@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { getApiUrl } from '../utils/api'
 import { getImageUrl } from '../utils/media'
+import WatermarkedImage from '../components/common/WatermarkedImage'
 
 export default function Decorations() {
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -69,11 +70,12 @@ export default function Decorations() {
                 className="group overflow-hidden bg-white shadow-lg border border-gray-100"
               >
                 <div className="aspect-[4/5] bg-gray-100 overflow-hidden">
-                  <img
+                  <WatermarkedImage
                     src={getImageUrl(image.url)}
                     alt={image.title}
                     loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    watermarkClassName="right-4 bottom-4"
                   />
                 </div>
                 <div className="p-5">

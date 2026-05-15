@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { getApiUrl } from '../utils/api'
 import { getImageUrl } from '../utils/media'
+import WatermarkedImage from '../components/common/WatermarkedImage'
 
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState('all')
@@ -65,13 +66,14 @@ export default function Gallery() {
             transition={{ duration: 0.5, delay: index * 0.1 }}
             className="relative group overflow-hidden aspect-square rounded-sm shadow-lg bg-gray-200"
           >
-            <img 
+            <WatermarkedImage
               src={getImageUrl(image.url)}
               alt={image.title}
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              watermarkClassName="right-4 bottom-4"
             />
-            <div className="absolute inset-0 bg-crystal-dark/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center">
+            <div className="absolute inset-0 z-20 bg-crystal-dark/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-6 text-center">
               <span className="text-crystal-gold text-xs uppercase tracking-widest mb-2">{image.category}</span>
               <h3 className="text-white text-lg font-serif">{image.title}</h3>
             </div>

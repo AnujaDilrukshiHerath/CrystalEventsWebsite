@@ -32,6 +32,7 @@ import {
 } from 'lucide-react'
 import './AdminCalendar.css'
 import { getImageUrl } from '../../utils/media'
+import WatermarkedImage from '../../components/common/WatermarkedImage'
 
 const BRANCH_HALLS = {
   'Hayes': ['Grand Ballroom', 'Diamond Suite'],
@@ -49,85 +50,6 @@ const GALLERY_CATEGORIES = [
   'Floral Decoration'
 ]
 
-const SUPPORTED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
-const MAX_WATERMARK_DIMENSION = 2400
-
-const loadImage = (src, errorMessage = 'Could not load image') => new Promise((resolve, reject) => {
-  const image = new Image()
-  image.onload = () => resolve(image)
-  image.onerror = () => reject(new Error(errorMessage))
-  image.src = src
-})
-
-const canvasToBlob = async (canvas) => {
-  const blob = await new Promise((resolve) => {
-    if (canvas.toBlob) {
-      canvas.toBlob(resolve, 'image/jpeg', 0.9)
-      return
-    }
-
-    resolve(null)
-  })
-
-  if (blob) return blob
-
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.9)
-  const response = await fetch(dataUrl)
-  return response.blob()
-}
-
-const createWatermarkedFile = async (file) => {
-  if (!SUPPORTED_UPLOAD_TYPES.includes(file.type)) {
-    throw new Error(`${file.name} is not supported. Please upload JPG, PNG, WebP, or GIF images.`)
-  }
-
-  const objectUrl = URL.createObjectURL(file)
-  const [sourceImage, logoImage] = await Promise.all([
-    loadImage(objectUrl, `Could not load ${file.name}`),
-    loadImage('/crystalLogo.jpeg', 'Could not load Crystal logo watermark')
-  ])
-
-  const sourceWidth = sourceImage.naturalWidth || sourceImage.width
-  const sourceHeight = sourceImage.naturalHeight || sourceImage.height
-  if (!sourceWidth || !sourceHeight) {
-    URL.revokeObjectURL(objectUrl)
-    throw new Error(`Could not read the size of ${file.name}`)
-  }
-
-  const scale = Math.min(1, MAX_WATERMARK_DIMENSION / Math.max(sourceWidth, sourceHeight))
-  const canvas = document.createElement('canvas')
-  canvas.width = Math.round(sourceWidth * scale)
-  canvas.height = Math.round(sourceHeight * scale)
-
-  const ctx = canvas.getContext('2d')
-  if (!ctx) {
-    URL.revokeObjectURL(objectUrl)
-    throw new Error('Could not prepare image editor in this browser')
-  }
-
-  ctx.drawImage(sourceImage, 0, 0, canvas.width, canvas.height)
-
-  const watermarkWidth = Math.max(Math.min(Math.round(canvas.width * 0.24), 340), 150)
-  const watermarkHeight = Math.round(watermarkWidth * (logoImage.naturalHeight / logoImage.naturalWidth))
-  const padding = Math.max(Math.round(canvas.width * 0.035), 24)
-  const x = canvas.width - watermarkWidth - padding
-  const y = canvas.height - watermarkHeight - padding
-
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.34)'
-  ctx.fillRect(x - 12, y - 12, watermarkWidth + 24, watermarkHeight + 24)
-  ctx.globalAlpha = 0.82
-  ctx.drawImage(logoImage, x, y, watermarkWidth, watermarkHeight)
-  ctx.globalAlpha = 1
-
-  URL.revokeObjectURL(objectUrl)
-
-  const blob = await canvasToBlob(canvas)
-  if (!blob) throw new Error('Could not prepare watermarked image')
-
-  const filename = file.name.replace(/\.[^.]+$/, '') + '-watermarked.jpg'
-  return new File([blob], filename, { type: 'image/jpeg' })
-}
-
 export default function AdminDashboard() {
 
   const navigate = useNavigate()
@@ -140,7 +62,6 @@ export default function AdminDashboard() {
   const [galleryFilter, setGalleryFilter] = useState('all')
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryError, setGalleryError] = useState('')
-  const [isWatermarking, setIsWatermarking] = useState(false)
 
 
   // Auth Check
@@ -845,10 +766,11 @@ export default function AdminDashboard() {
                         <div key={img.id} className={`relative group border border-gray-50 ${!img.active ? 'opacity-50' : ''}`}>
                           {/* Image Preview */}
                           <div className="aspect-square overflow-hidden bg-gray-100">
-                            <img
+                            <WatermarkedImage
                               src={getImageUrl(img.url)}
                               alt={img.title}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
                               onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
                             />
                           </div>
@@ -1216,19 +1138,11 @@ export default function AdminDashboard() {
                 ? formData.get('customCategory')
                 : selectedCategory;
               if (!galleryModal.data && galleryFiles.length > 0) {
-                try {
-                  setIsWatermarking(true);
-                  const watermarkedFiles = await Promise.all(galleryFiles.map(createWatermarkedFile));
-                  formData.delete('images');
-                  watermarkedFiles.forEach((file) => formData.append('images', file));
-                  formData.set('category', category);
-                  formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
-                  uploadGalleryMutation.mutate(formData);
-                } catch (error) {
-                  setGalleryError(error.message || 'Could not prepare image watermark');
-                } finally {
-                  setIsWatermarking(false);
-                }
+                formData.delete('images');
+                galleryFiles.forEach((file) => formData.append('images', file));
+                formData.set('category', category);
+                formData.set('active', formData.get('active') === 'on' ? 'true' : 'false');
+                uploadGalleryMutation.mutate(formData);
                 return;
               }
 
@@ -1267,7 +1181,7 @@ export default function AdminDashboard() {
                     <div>
                       <div className="text-sm font-semibold text-crystal-blue">Drop images here or click to choose</div>
                       <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF</div>
-                      <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">Logo watermark added automatically</div>
+                      <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">Logo watermark appears automatically on the website</div>
                     </div>
                     <input
                       name="images"
@@ -1308,10 +1222,11 @@ export default function AdminDashboard() {
               {/* Image Preview */}
               {galleryModal.data?.url && (
                 <div className="aspect-video overflow-hidden rounded bg-gray-100 border border-gray-200">
-                  <img
+                  <WatermarkedImage
                     src={getImageUrl(galleryModal.data.url)}
                     alt="Preview"
                     className="w-full h-full object-cover"
+                    watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
                     onError={(e) => { e.target.style.display = 'none' }}
                   />
                 </div>
@@ -1391,10 +1306,10 @@ export default function AdminDashboard() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isWatermarking || createGalleryMutation.isPending || updateGalleryMutation.isPending || uploadGalleryMutation.isPending}
+                  disabled={createGalleryMutation.isPending || updateGalleryMutation.isPending || uploadGalleryMutation.isPending}
                   className="w-full py-4 bg-crystal-gold text-white uppercase tracking-widest font-bold text-xs hover:bg-crystal-dark shadow-lg disabled:opacity-50"
                 >
-                  {galleryModal.data ? 'Update Image' : isWatermarking ? 'Adding Watermark...' : galleryFiles.length > 0 ? 'Upload Image' : 'Add Image'}
+                  {galleryModal.data ? 'Update Image' : galleryFiles.length > 0 ? 'Upload Image' : 'Add Image'}
                 </button>
               </div>
             </form>
