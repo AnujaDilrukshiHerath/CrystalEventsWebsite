@@ -158,6 +158,39 @@ const titleFromFilename = (filename) => {
 
 const toDataUrl = (file) => `data:${file.contentType};base64,${file.data.toString('base64')}`;
 
+const withDisplayUrl = (image) => ({
+  ...image,
+  url: image.url?.startsWith('data:') ? `/api/gallery-images/${image.id}/image` : image.url
+});
+
+const mapDisplayUrls = (images) => images.map(withDisplayUrl);
+
+exports.getGalleryImageAsset = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const image = await prisma.galleryImage.findUnique({ where: { id } });
+    if (!image) {
+      return res.status(404).json({ message: 'Image not found' });
+    }
+
+    if (!image.url?.startsWith('data:')) {
+      return res.redirect(image.url);
+    }
+
+    const match = image.url.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) {
+      return res.status(400).json({ message: 'Invalid stored image' });
+    }
+
+    res.setHeader('Content-Type', match[1]);
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.send(Buffer.from(match[2], 'base64'));
+  } catch (error) {
+    console.error('Error serving gallery image:', error);
+    res.status(500).json({ message: 'Error serving gallery image' });
+  }
+};
+
 // Public: Get all active gallery images (for the website)
 exports.getGallery = async (req, res) => {
   try {
@@ -173,7 +206,7 @@ exports.getGallery = async (req, res) => {
       images = images.filter((image) => image.category.toLowerCase().includes('decoration'));
     }
     // Map to match existing frontend format: { id, url, title, category }
-    res.status(200).json(images);
+    res.status(200).json(mapDisplayUrls(images));
   } catch (error) {
     console.error('Error fetching gallery:', error);
     res.status(500).json({ message: 'Error fetching gallery', error: error.message });
@@ -190,7 +223,7 @@ exports.getTeamGallery = async (req, res) => {
       orderBy: { sortOrder: 'asc' }
     });
 
-    res.status(200).json(images.filter((image) => isInternalCategory(image.category)));
+    res.status(200).json(mapDisplayUrls(images.filter((image) => isInternalCategory(image.category))));
   } catch (error) {
     console.error('Error fetching team gallery:', error);
     res.status(500).json({ message: 'Error fetching team gallery' });
@@ -205,7 +238,7 @@ exports.getAdminGallery = async (req, res) => {
     const images = await prisma.galleryImage.findMany({
       orderBy: { sortOrder: 'asc' }
     });
-    res.status(200).json(images);
+    res.status(200).json(mapDisplayUrls(images));
   } catch (error) {
     console.error('Error fetching admin gallery:', error);
     res.status(500).json({ message: 'Error fetching gallery' });
@@ -233,7 +266,7 @@ exports.createGalleryImage = async (req, res) => {
       }
     });
 
-    res.status(201).json(image);
+    res.status(201).json(withDisplayUrl(image));
   } catch (error) {
     console.error('Error creating gallery image:', error);
     res.status(500).json({ message: 'Error creating gallery image' });
@@ -275,7 +308,8 @@ exports.uploadGalleryImages = async (req, res) => {
       createdImages.push(image);
     }
 
-    res.status(201).json(createdImages.length === 1 ? createdImages[0] : createdImages);
+    const responseImages = mapDisplayUrls(createdImages);
+    res.status(201).json(responseImages.length === 1 ? responseImages[0] : responseImages);
   } catch (error) {
     console.error('Error uploading gallery images:', error);
     res.status(error.statusCode || 500).json({ message: error.message || 'Error uploading gallery images' });
@@ -303,7 +337,7 @@ exports.updateGalleryImage = async (req, res) => {
       data: updateData
     });
 
-    res.status(200).json(image);
+    res.status(200).json(withDisplayUrl(image));
   } catch (error) {
     console.error('Error updating gallery image:', error);
     res.status(500).json({ message: 'Error updating gallery image' });
