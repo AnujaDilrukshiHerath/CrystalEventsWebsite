@@ -5,6 +5,12 @@ import { getApiUrl } from '../../utils/api'
 import { getImageUrl } from '../../utils/media'
 import WatermarkedImage from './WatermarkedImage'
 
+const INTERNAL_CATEGORY_PREFIX = 'Internal: '
+
+const formatInternalCategory = (category = '') => (
+  category.startsWith(INTERNAL_CATEGORY_PREFIX) ? category.slice(INTERNAL_CATEGORY_PREFIX.length) : category
+)
+
 export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = 'team-gallery', title = 'Customer Showcase' }) {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const { data: images, isLoading } = useQuery({
@@ -34,7 +40,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
           className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
         >
           {categories.map((category) => (
-            <option key={category} value={category}>{category === 'all' ? 'All Images' : category}</option>
+            <option key={category} value={category}>{category === 'all' ? 'All Images' : formatInternalCategory(category)}</option>
           ))}
         </select>
       </div>
@@ -55,7 +61,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
                 />
               </div>
               <div className="p-4">
-                <div className="text-[10px] uppercase tracking-widest text-crystal-gold font-bold">{image.category}</div>
+                <div className="text-[10px] uppercase tracking-widest text-crystal-gold font-bold">{formatInternalCategory(image.category)}</div>
                 <h3 className="text-sm font-semibold text-crystal-dark mt-1">{image.title}</h3>
               </div>
             </div>

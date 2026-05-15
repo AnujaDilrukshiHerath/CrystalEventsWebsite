@@ -50,7 +50,8 @@ const GALLERY_CATEGORIES = [
   'Floral Decoration'
 ]
 
-const INTERNAL_CATEGORIES = [
+const INTERNAL_CATEGORY_PREFIX = 'Internal: '
+const LEGACY_INTERNAL_CATEGORIES = [
   'Team Showcase',
   'Sales Showcase',
   'Slough Team Showcase',
@@ -58,7 +59,20 @@ const INTERNAL_CATEGORIES = [
   'Hayes Team Showcase'
 ]
 
-const isInternalCategory = (category) => INTERNAL_CATEGORIES.includes(category)
+const isInternalCategory = (category = '') => (
+  category.startsWith(INTERNAL_CATEGORY_PREFIX) || LEGACY_INTERNAL_CATEGORIES.includes(category)
+)
+
+const formatInternalCategory = (category = '') => (
+  category.startsWith(INTERNAL_CATEGORY_PREFIX) ? category.slice(INTERNAL_CATEGORY_PREFIX.length) : category
+)
+
+const toInternalCategory = (category = '') => {
+  const cleanCategory = category.trim()
+  return cleanCategory.startsWith(INTERNAL_CATEGORY_PREFIX)
+    ? cleanCategory
+    : `${INTERNAL_CATEGORY_PREFIX}${cleanCategory || 'Customer Showcase'}`
+}
 
 export default function AdminDashboard() {
 
@@ -390,8 +404,8 @@ export default function AdminDashboard() {
   }
 
   const modalIsInternal = galleryModal.type === 'internal' || isInternalCategory(galleryModal.data?.category)
-  const modalCategories = modalIsInternal ? INTERNAL_CATEGORIES : GALLERY_CATEGORIES
-  const modalDefaultCategory = galleryModal.data?.category || (modalIsInternal ? 'Team Showcase' : 'Venue')
+  const modalDefaultCategory = galleryModal.data?.category || 'Venue'
+  const modalDefaultInternalCategory = formatInternalCategory(galleryModal.data?.category) || ''
 
   return (
     <div className="pt-32 pb-24 min-h-screen bg-gray-50">
@@ -867,7 +881,7 @@ export default function AdminDashboard() {
                   >
                     <option value="all">All Internal Images</option>
                     {[...new Set(teamImages.map(i => i.category))].map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat}>{formatInternalCategory(cat)}</option>
                     ))}
                   </select>
                 </div>
@@ -920,7 +934,7 @@ export default function AdminDashboard() {
                             <div className="flex justify-between items-start mb-2">
                               <div>
                                 <h3 className="text-sm font-semibold text-crystal-dark truncate" title={img.title}>{img.title}</h3>
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{img.category}</span>
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{formatInternalCategory(img.category)}</span>
                               </div>
                               <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-blue-50 text-crystal-blue rounded-full">Internal</span>
                             </div>
@@ -1264,9 +1278,12 @@ export default function AdminDashboard() {
               setGalleryError('');
               const formData = new FormData(e.target);
               const selectedCategory = formData.get('category');
-              const category = selectedCategory === '__custom__'
-                ? formData.get('customCategory')
-                : selectedCategory;
+              const rawCategory = modalIsInternal
+                ? formData.get('internalCategory')
+                : selectedCategory === '__custom__'
+                  ? formData.get('customCategory')
+                  : selectedCategory;
+              const category = modalIsInternal ? toInternalCategory(rawCategory) : rawCategory;
               const internalImage = modalIsInternal || isInternalCategory(category);
               if (!galleryModal.data && galleryFiles.length > 0) {
                 formData.delete('images');
@@ -1380,29 +1397,41 @@ export default function AdminDashboard() {
               {/* Category */}
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Category *</label>
-                <select
-                  name="category"
-                  defaultValue={modalDefaultCategory}
-                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
-                  onChange={(e) => {
-                    const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
-                    if (customInput) {
-                      customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
-                      customInput.required = e.target.value === '__custom__';
-                    }
-                  }}
-                >
-                  {[...new Set([...modalCategories, galleryModal.data?.category].filter(Boolean))].map((category) => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                  {!modalIsInternal && <option value="__custom__">Other (type below)</option>}
-                </select>
-                <input
-                  name="customCategory"
-                  placeholder="Type custom category..."
-                  style={{ display: 'none' }}
-                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
-                />
+                {modalIsInternal ? (
+                  <input
+                    name="internalCategory"
+                    defaultValue={modalDefaultInternalCategory}
+                    required
+                    placeholder="e.g. Wedding setups, Stage designs, Table decor"
+                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                  />
+                ) : (
+                  <>
+                    <select
+                      name="category"
+                      defaultValue={modalDefaultCategory}
+                      className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                      onChange={(e) => {
+                        const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
+                        if (customInput) {
+                          customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
+                          customInput.required = e.target.value === '__custom__';
+                        }
+                      }}
+                    >
+                      {[...new Set([...GALLERY_CATEGORIES, galleryModal.data?.category].filter(Boolean))].map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                      <option value="__custom__">Other (type below)</option>
+                    </select>
+                    <input
+                      name="customCategory"
+                      placeholder="Type custom category..."
+                      style={{ display: 'none' }}
+                      className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
+                    />
+                  </>
+                )}
               </div>
 
               {/* Sort Order */}

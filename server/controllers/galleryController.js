@@ -15,7 +15,8 @@ const IMAGE_TYPES = {
   'image/gif': 'gif'
 };
 
-const INTERNAL_CATEGORIES = [
+const INTERNAL_CATEGORY_PREFIX = 'Internal: ';
+const LEGACY_INTERNAL_CATEGORIES = [
   'Team Showcase',
   'Sales Showcase',
   'Slough Team Showcase',
@@ -23,7 +24,9 @@ const INTERNAL_CATEGORIES = [
   'Hayes Team Showcase'
 ];
 
-const isInternalCategory = (category = '') => INTERNAL_CATEGORIES.includes(category);
+const isInternalCategory = (category = '') => (
+  category.startsWith(INTERNAL_CATEGORY_PREFIX) || LEGACY_INTERNAL_CATEGORIES.includes(category)
+);
 
 const verifyAdmin = (req, res) => {
   const authHeader = req.headers.authorization;
@@ -189,21 +192,11 @@ exports.getTeamGallery = async (req, res) => {
     const user = verifyPortalUser(req, res);
     if (!user) return;
 
-    let allowedCategories = INTERNAL_CATEGORIES;
-    if (user.role?.startsWith('branch-')) {
-      const branchName = user.role.replace('branch-', '');
-      const branchLabel = branchName.charAt(0).toUpperCase() + branchName.slice(1);
-      allowedCategories = ['Team Showcase', `${branchLabel} Team Showcase`];
-    }
-
     const images = await prisma.galleryImage.findMany({
-      where: {
-        category: { in: allowedCategories }
-      },
       orderBy: { sortOrder: 'asc' }
     });
 
-    res.status(200).json(images);
+    res.status(200).json(images.filter((image) => isInternalCategory(image.category)));
   } catch (error) {
     console.error('Error fetching team gallery:', error);
     res.status(500).json({ message: 'Error fetching team gallery' });
