@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Mail, Phone, LogOut, RefreshCw } from 'lucide-react'
+import { ImageIcon, Mail, Phone, LogOut, RefreshCw } from 'lucide-react'
 import { getApiUrl } from '../../utils/api'
 import Logo from '../../components/common/Logo'
 import TeamImageLibrary from '../../components/common/TeamImageLibrary'
@@ -10,6 +10,7 @@ export default function BranchDashboard() {
   const { branch } = useParams() // 'slough' or 'wembley'
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState('enquiries')
   const branchLabel = branch ? branch.charAt(0).toUpperCase() + branch.slice(1) : 'Branch'
 
   // Auth check
@@ -74,16 +75,18 @@ export default function BranchDashboard() {
             <Logo className="w-10 h-10" textClassName="text-crystal-blue" />
             <div>
               <h1 className="text-3xl font-serif text-crystal-blue">{branchLabel} Branch Portal</h1>
-              <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Enquiry Management</p>
+              <p className="text-xs text-gray-400 uppercase tracking-widest mt-1">Branch Team Portal</p>
             </div>
           </div>
           <div className="flex gap-3">
-            <button
-              onClick={() => queryClient.invalidateQueries({ queryKey: ['branch-enquiries', branch] })}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-500 text-xs uppercase tracking-wider hover:bg-gray-100 transition-colors"
-            >
-              <RefreshCw size={14} /> Refresh
-            </button>
+            {activeTab === 'enquiries' && (
+              <button
+                onClick={() => queryClient.invalidateQueries({ queryKey: ['branch-enquiries', branch] })}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-500 text-xs uppercase tracking-wider hover:bg-gray-100 transition-colors"
+              >
+                <RefreshCw size={14} /> Refresh
+              </button>
+            )}
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 text-xs uppercase tracking-wider hover:bg-red-100 transition-colors"
@@ -93,16 +96,36 @@ export default function BranchDashboard() {
           </div>
         </div>
 
-        <div className="mb-10">
+        <div className="flex flex-wrap gap-2 mb-8 border-b border-gray-200">
+          {[
+            { id: 'enquiries', label: 'Enquiries', icon: Mail },
+            { id: 'showcase', label: 'Customer Showcase', icon: ImageIcon }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-6 py-4 text-sm uppercase tracking-wider font-semibold transition-all border-b-2 ${
+                activeTab === tab.id
+                  ? 'border-crystal-gold text-crystal-blue bg-white'
+                  : 'border-transparent text-gray-400 hover:text-crystal-blue'
+              }`}
+            >
+              <tab.icon size={18} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'showcase' && (
           <TeamImageLibrary
             tokenKey="branchToken"
             queryKey={`branch-team-gallery-${branch}`}
             title={`${branchLabel} Customer Showcase`}
           />
-        </div>
+        )}
 
-        {/* Enquiries Table */}
-        <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
+        {activeTab === 'enquiries' && (
+          <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
           <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <h2 className="text-xl font-serif text-crystal-blue">{branchLabel} Enquiries</h2>
             <span className="text-xs text-gray-400 uppercase tracking-widest">
@@ -194,7 +217,8 @@ export default function BranchDashboard() {
               </table>
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )
