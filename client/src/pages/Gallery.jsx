@@ -50,7 +50,7 @@ export default function Gallery() {
   })
 
   useEffect(() => {
-    if (!selectedCategory && categories.length > 0) setSelectedCategory(categories[0])
+    if (selectedCategory && !categories.includes(selectedCategory)) setSelectedCategory('')
   }, [categories, selectedCategory])
 
   useEffect(() => {
@@ -90,6 +90,16 @@ export default function Gallery() {
       </motion.div>
 
       <div className="flex flex-wrap justify-center gap-3 mb-10">
+        <button
+          onClick={() => { setSelectedCategory(''); setSelectedSubCategory(''); setSelectedChildSubCategory('') }}
+          className={`px-5 py-2 text-xs uppercase tracking-widest border transition-all ${
+            selectedCategory === ''
+              ? 'bg-crystal-blue text-white border-crystal-blue'
+              : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
+          }`}
+        >
+          All
+        </button>
         {categories.map((category) => (
           <button
             key={category}
