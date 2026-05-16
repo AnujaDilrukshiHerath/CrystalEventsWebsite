@@ -71,17 +71,19 @@ const formatInternalCategory = (category = '') => (
 
 const splitCategory = (category = '') => {
   const visibleCategory = formatInternalCategory(category)
-  const [mainCategory, ...subCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
+  const [mainCategory, subCategory, ...childSubCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
   return {
     mainCategory: mainCategory || '',
-    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+    subCategory: subCategory || '',
+    childSubCategory: childSubCategoryParts.join(CATEGORY_SEPARATOR)
   }
 }
 
-const composeCategory = (mainCategory = '', subCategory = '') => {
+const composeCategory = (mainCategory = '', subCategory = '', childSubCategory = '') => {
   const cleanCategory = mainCategory.trim()
   const cleanSubCategory = subCategory.trim()
-  return cleanSubCategory ? `${cleanCategory}${CATEGORY_SEPARATOR}${cleanSubCategory}` : cleanCategory
+  const cleanChildSubCategory = childSubCategory.trim()
+  return [cleanCategory, cleanSubCategory, cleanChildSubCategory].filter(Boolean).join(CATEGORY_SEPARATOR)
 }
 
 const toInternalCategory = (category = '') => {
@@ -102,8 +104,13 @@ export default function AdminDashboard() {
   const [galleryModal, setGalleryModal] = useState({ isOpen: false, data: null, type: 'public' })
   const [galleryFilter, setGalleryFilter] = useState('')
   const [gallerySubFilter, setGallerySubFilter] = useState('')
+  const [galleryChildSubFilter, setGalleryChildSubFilter] = useState('')
   const [teamImageFilter, setTeamImageFilter] = useState('')
   const [teamImageSubFilter, setTeamImageSubFilter] = useState('')
+  const [teamImageChildSubFilter, setTeamImageChildSubFilter] = useState('')
+  const [modalCategoryChoice, setModalCategoryChoice] = useState('')
+  const [modalSubCategoryChoice, setModalSubCategoryChoice] = useState('')
+  const [modalChildSubCategoryChoice, setModalChildSubCategoryChoice] = useState('')
   const [galleryFiles, setGalleryFiles] = useState([])
   const [galleryError, setGalleryError] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
@@ -171,21 +178,59 @@ export default function AdminDashboard() {
     .filter(i => splitCategory(i.category).mainCategory === galleryFilter)
     .map(i => splitCategory(i.category).subCategory)
     .filter(Boolean))]
+  const websiteChildSubCategoryOptions = [...new Set(websiteImages
+    .filter(i => {
+      const parts = splitCategory(i.category)
+      return parts.mainCategory === galleryFilter && parts.subCategory === gallerySubFilter
+    })
+    .map(i => splitCategory(i.category).childSubCategory)
+    .filter(Boolean))]
   const teamCategoryOptions = [...new Set(teamImages.map(i => splitCategory(i.category).mainCategory))]
   const teamSubCategoryOptions = [...new Set(teamImages
     .filter(i => splitCategory(i.category).mainCategory === teamImageFilter)
     .map(i => splitCategory(i.category).subCategory)
     .filter(Boolean))]
+  const teamChildSubCategoryOptions = [...new Set(teamImages
+    .filter(i => {
+      const parts = splitCategory(i.category)
+      return parts.mainCategory === teamImageFilter && parts.subCategory === teamImageSubFilter
+    })
+    .map(i => splitCategory(i.category).childSubCategory)
+    .filter(Boolean))]
   const filteredWebsiteImages = websiteImages.filter((image) => {
     const parts = splitCategory(image.category)
     return (!galleryFilter || parts.mainCategory === galleryFilter)
       && (!gallerySubFilter || parts.subCategory === gallerySubFilter)
+      && (!galleryChildSubFilter || parts.childSubCategory === galleryChildSubFilter)
   })
   const filteredTeamImages = teamImages.filter((image) => {
     const parts = splitCategory(image.category)
     return (!teamImageFilter || parts.mainCategory === teamImageFilter)
       && (!teamImageSubFilter || parts.subCategory === teamImageSubFilter)
+      && (!teamImageChildSubFilter || parts.childSubCategory === teamImageChildSubFilter)
   })
+  const modalCategoryParts = splitCategory(galleryModal.data?.category)
+  const modalIsInternalState = galleryModal.type === 'internal' || isInternalCategory(galleryModal.data?.category)
+  const modalImages = modalIsInternalState ? teamImages : websiteImages
+  const modalExistingCategories = [...new Set(modalImages.map(i => splitCategory(i.category).mainCategory).filter(Boolean))]
+  const modalCategoryOptions = [...new Set([
+    ...(modalIsInternalState ? [] : GALLERY_CATEGORIES),
+    ...modalExistingCategories,
+    modalCategoryParts.mainCategory
+  ].filter(Boolean))]
+  const modalSelectedCategory = modalCategoryChoice === '__custom__' ? '' : modalCategoryChoice
+  const modalSubCategoryOptions = [...new Set(modalImages
+    .filter(i => splitCategory(i.category).mainCategory === modalSelectedCategory)
+    .map(i => splitCategory(i.category).subCategory)
+    .filter(Boolean))]
+  const modalSelectedSubCategory = modalSubCategoryChoice === '__custom__' ? '' : modalSubCategoryChoice
+  const modalChildSubCategoryOptions = [...new Set(modalImages
+    .filter(i => {
+      const parts = splitCategory(i.category)
+      return parts.mainCategory === modalSelectedCategory && parts.subCategory === modalSelectedSubCategory
+    })
+    .map(i => splitCategory(i.category).childSubCategory)
+    .filter(Boolean))]
 
   useEffect(() => {
     if (!galleryFilter && websiteCategoryOptions.length > 0) setGalleryFilter(websiteCategoryOptions[0])
@@ -200,6 +245,13 @@ export default function AdminDashboard() {
   }, [gallerySubFilter, websiteSubCategoryOptions])
 
   useEffect(() => {
+    if (websiteChildSubCategoryOptions.length > 0 && !websiteChildSubCategoryOptions.includes(galleryChildSubFilter)) {
+      setGalleryChildSubFilter(websiteChildSubCategoryOptions[0])
+    }
+    if (websiteChildSubCategoryOptions.length === 0 && galleryChildSubFilter) setGalleryChildSubFilter('')
+  }, [galleryChildSubFilter, websiteChildSubCategoryOptions])
+
+  useEffect(() => {
     if (!teamImageFilter && teamCategoryOptions.length > 0) setTeamImageFilter(teamCategoryOptions[0])
     if (teamImageFilter && !teamCategoryOptions.includes(teamImageFilter)) setTeamImageFilter(teamCategoryOptions[0] || '')
   }, [teamImageFilter, teamCategoryOptions])
@@ -210,6 +262,21 @@ export default function AdminDashboard() {
     }
     if (teamSubCategoryOptions.length === 0 && teamImageSubFilter) setTeamImageSubFilter('')
   }, [teamImageSubFilter, teamSubCategoryOptions])
+
+  useEffect(() => {
+    if (teamChildSubCategoryOptions.length > 0 && !teamChildSubCategoryOptions.includes(teamImageChildSubFilter)) {
+      setTeamImageChildSubFilter(teamChildSubCategoryOptions[0])
+    }
+    if (teamChildSubCategoryOptions.length === 0 && teamImageChildSubFilter) setTeamImageChildSubFilter('')
+  }, [teamImageChildSubFilter, teamChildSubCategoryOptions])
+
+  useEffect(() => {
+    if (!galleryModal.isOpen) return
+    const parts = splitCategory(galleryModal.data?.category)
+    setModalCategoryChoice(parts.mainCategory || (modalIsInternalState ? '__custom__' : 'Venue'))
+    setModalSubCategoryChoice(parts.subCategory || '')
+    setModalChildSubCategoryChoice(parts.childSubCategory || '')
+  }, [galleryModal.isOpen, galleryModal.data?.id, galleryModal.data?.category, galleryModal.type, modalIsInternalState])
 
   const createGalleryMutation = useMutation({
     mutationFn: async (imageData) => {
@@ -467,11 +534,10 @@ export default function AdminDashboard() {
     )
   }
 
-  const modalIsInternal = galleryModal.type === 'internal' || isInternalCategory(galleryModal.data?.category)
-  const modalCategoryParts = splitCategory(galleryModal.data?.category)
-  const modalDefaultCategory = modalCategoryParts.mainCategory || 'Venue'
-  const modalDefaultSubCategory = modalCategoryParts.subCategory || ''
-  const modalDefaultInternalCategory = modalCategoryParts.mainCategory || ''
+  const modalIsInternal = modalIsInternalState
+  const showManualCategory = modalCategoryChoice === '__custom__'
+  const showManualSubCategory = modalSubCategoryChoice === '__custom__'
+  const showManualChildSubCategory = modalChildSubCategoryChoice === '__custom__'
 
   return (
     <div className="pt-32 pb-24 min-h-screen bg-gray-50">
@@ -821,7 +887,7 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Category:</label>
                   <select
                     value={galleryFilter}
-                    onChange={(e) => { setGalleryFilter(e.target.value); setGallerySubFilter('') }}
+                    onChange={(e) => { setGalleryFilter(e.target.value); setGallerySubFilter(''); setGalleryChildSubFilter('') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     {websiteCategoryOptions.map(cat => (
@@ -834,11 +900,25 @@ export default function AdminDashboard() {
                     <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
                     <select
                       value={gallerySubFilter}
-                      onChange={(e) => setGallerySubFilter(e.target.value)}
+                      onChange={(e) => { setGallerySubFilter(e.target.value); setGalleryChildSubFilter('') }}
                       className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                     >
                       {websiteSubCategoryOptions.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {websiteChildSubCategoryOptions.length > 0 && (
+                  <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Child Subcategory:</label>
+                    <select
+                      value={galleryChildSubFilter}
+                      onChange={(e) => setGalleryChildSubFilter(e.target.value)}
+                      className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                    >
+                      {websiteChildSubCategoryOptions.map(child => (
+                        <option key={child} value={child}>{child}</option>
                       ))}
                     </select>
                   </div>
@@ -897,6 +977,9 @@ export default function AdminDashboard() {
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{splitCategory(img.category).mainCategory}</span>
                                 {splitCategory(img.category).subCategory && (
                                   <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).subCategory}</div>
+                                )}
+                                {splitCategory(img.category).childSubCategory && (
+                                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).childSubCategory}</div>
                                 )}
                               </div>
                               {!img.active && (
@@ -960,7 +1043,7 @@ export default function AdminDashboard() {
                   <label className="text-[10px] font-bold uppercase text-gray-400">Internal Category:</label>
                   <select
                     value={teamImageFilter}
-                    onChange={(e) => { setTeamImageFilter(e.target.value); setTeamImageSubFilter('') }}
+                    onChange={(e) => { setTeamImageFilter(e.target.value); setTeamImageSubFilter(''); setTeamImageChildSubFilter('') }}
                     className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                   >
                     {teamCategoryOptions.map(cat => (
@@ -973,11 +1056,25 @@ export default function AdminDashboard() {
                     <label className="text-[10px] font-bold uppercase text-gray-400">Subcategory:</label>
                     <select
                       value={teamImageSubFilter}
-                      onChange={(e) => setTeamImageSubFilter(e.target.value)}
+                      onChange={(e) => { setTeamImageSubFilter(e.target.value); setTeamImageChildSubFilter('') }}
                       className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
                     >
                       {teamSubCategoryOptions.map(sub => (
                         <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {teamChildSubCategoryOptions.length > 0 && (
+                  <div className="flex items-center gap-4 bg-white px-4 py-2 rounded shadow-sm border border-gray-100">
+                    <label className="text-[10px] font-bold uppercase text-gray-400">Child Subcategory:</label>
+                    <select
+                      value={teamImageChildSubFilter}
+                      onChange={(e) => setTeamImageChildSubFilter(e.target.value)}
+                      className="text-sm font-semibold text-crystal-blue outline-none bg-transparent"
+                    >
+                      {teamChildSubCategoryOptions.map(child => (
+                        <option key={child} value={child}>{child}</option>
                       ))}
                     </select>
                   </div>
@@ -1036,6 +1133,9 @@ export default function AdminDashboard() {
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-crystal-gold">{splitCategory(img.category).mainCategory}</span>
                                 {splitCategory(img.category).subCategory && (
                                   <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).subCategory}</div>
+                                )}
+                                {splitCategory(img.category).childSubCategory && (
+                                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(img.category).childSubCategory}</div>
                                 )}
                               </div>
                               <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 bg-blue-50 text-crystal-blue rounded-full">Internal</span>
@@ -1379,16 +1479,21 @@ export default function AdminDashboard() {
               e.preventDefault();
               setGalleryError('');
               const formData = new FormData(e.target);
-              const selectedCategory = formData.get('category');
-              const subCategory = formData.get('subCategory') || '';
-              const rawCategory = modalIsInternal
-                ? formData.get('internalCategory')
-                : selectedCategory === '__custom__'
-                  ? formData.get('customCategory')
-                  : selectedCategory;
+              const selectedCategory = formData.get('categoryChoice');
+              const selectedSubCategory = formData.get('subCategoryChoice');
+              const selectedChildSubCategory = formData.get('childSubCategoryChoice');
+              const rawCategory = selectedCategory === '__custom__'
+                ? formData.get('manualCategory')
+                : selectedCategory;
+              const subCategory = selectedSubCategory === '__custom__'
+                ? formData.get('manualSubCategory')
+                : selectedSubCategory || '';
+              const childSubCategory = selectedChildSubCategory === '__custom__'
+                ? formData.get('manualChildSubCategory')
+                : selectedChildSubCategory || '';
               const category = modalIsInternal
-                ? toInternalCategory(composeCategory(rawCategory, subCategory))
-                : composeCategory(rawCategory, subCategory);
+                ? toInternalCategory(composeCategory(rawCategory, subCategory, childSubCategory))
+                : composeCategory(rawCategory, subCategory, childSubCategory);
               const internalImage = modalIsInternal || isInternalCategory(category);
               if (!galleryModal.data && galleryFiles.length > 0) {
                 formData.delete('images');
@@ -1505,52 +1610,83 @@ export default function AdminDashboard() {
               {/* Category */}
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Category *</label>
-                {modalIsInternal ? (
+                <select
+                  name="categoryChoice"
+                  value={modalCategoryChoice || '__custom__'}
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                  onChange={(e) => {
+                    setModalCategoryChoice(e.target.value)
+                    setModalSubCategoryChoice('')
+                    setModalChildSubCategoryChoice('')
+                  }}
+                >
+                  {modalCategoryOptions.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                  <option value="__custom__">Other (type new category)</option>
+                </select>
+                {showManualCategory && (
                   <input
-                    name="internalCategory"
-                    defaultValue={modalDefaultInternalCategory}
+                    name="manualCategory"
                     required
-                    placeholder="e.g. Wedding setups, Stage designs, Table decor"
-                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
+                    placeholder={modalIsInternal ? 'e.g. Wedding setups, Stage designs, Table decor' : 'Type custom category...'}
+                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
                   />
-                ) : (
-                  <>
-                    <select
-                      name="category"
-                      defaultValue={modalDefaultCategory}
-                      className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
-                      onChange={(e) => {
-                        const customInput = e.target.parentNode.querySelector('input[name="customCategory"]');
-                        if (customInput) {
-                          customInput.style.display = e.target.value === '__custom__' ? 'block' : 'none';
-                          customInput.required = e.target.value === '__custom__';
-                        }
-                      }}
-                    >
-                      {[...new Set([...GALLERY_CATEGORIES, modalCategoryParts.mainCategory].filter(Boolean))].map((category) => (
-                        <option key={category} value={category}>{category}</option>
-                      ))}
-                      <option value="__custom__">Other (type below)</option>
-                    </select>
-                    <input
-                      name="customCategory"
-                      placeholder="Type custom category..."
-                      style={{ display: 'none' }}
-                      className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
-                    />
-                  </>
                 )}
               </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Subcategory</label>
-                <input
-                  name="subCategory"
-                  defaultValue={modalDefaultSubCategory}
-                  placeholder="e.g. Mandap, Head table, Stage backdrop"
+                <select
+                  name="subCategoryChoice"
+                  value={modalSubCategoryChoice}
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
-                />
+                  onChange={(e) => {
+                    setModalSubCategoryChoice(e.target.value)
+                    setModalChildSubCategoryChoice('')
+                  }}
+                >
+                  <option value="">No subcategory</option>
+                  {modalSubCategoryOptions.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                  <option value="__custom__">Other (type new subcategory)</option>
+                </select>
+                {showManualSubCategory && (
+                  <input
+                    name="manualSubCategory"
+                    required
+                    placeholder="e.g. Mandap, Head table, Stage backdrop"
+                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
+                  />
+                )}
                 <p className="text-[10px] text-gray-400 mt-1">Optional. Use this to group images inside a category.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Child Subcategory</label>
+                <select
+                  name="childSubCategoryChoice"
+                  value={modalChildSubCategoryChoice}
+                  disabled={!modalSubCategoryChoice}
+                  className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm disabled:text-gray-300"
+                  onChange={(e) => setModalChildSubCategoryChoice(e.target.value)}
+                >
+                  <option value="">No child subcategory</option>
+                  {modalChildSubCategoryOptions.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                  <option value="__custom__">Other (type new child subcategory)</option>
+                </select>
+                {showManualChildSubCategory && (
+                  <input
+                    name="manualChildSubCategory"
+                    required
+                    placeholder="e.g. Gold package, Fresh flowers, Evening setup"
+                    className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm mt-2"
+                  />
+                )}
+                <p className="text-[10px] text-gray-400 mt-1">Optional. Select a subcategory first, then add this deeper group.</p>
               </div>
 
               {/* Sort Order */}

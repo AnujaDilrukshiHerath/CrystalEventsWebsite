@@ -9,16 +9,18 @@ import ImageLightbox from '../components/common/ImageLightbox'
 const CATEGORY_SEPARATOR = ' :: '
 
 const splitCategory = (category = '') => {
-  const [mainCategory, ...subCategoryParts] = category.split(CATEGORY_SEPARATOR)
+  const [mainCategory, subCategory, ...childSubCategoryParts] = category.split(CATEGORY_SEPARATOR)
   return {
     mainCategory: mainCategory || '',
-    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+    subCategory: subCategory || '',
+    childSubCategory: childSubCategoryParts.join(CATEGORY_SEPARATOR)
   }
 }
 
 export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategory, setSelectedSubCategory] = useState('')
+  const [selectedChildSubCategory, setSelectedChildSubCategory] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
@@ -33,10 +35,18 @@ export default function Gallery() {
     ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
     .map((image) => splitCategory(image.category).subCategory)
     .filter(Boolean) || [])]
+  const childSubCategories = [...new Set(images
+    ?.filter((image) => {
+      const parts = splitCategory(image.category)
+      return parts.mainCategory === selectedCategory && parts.subCategory === selectedSubCategory
+    })
+    .map((image) => splitCategory(image.category).childSubCategory)
+    .filter(Boolean) || [])]
   const filteredImages = images?.filter((image) => {
     const parts = splitCategory(image.category)
     return (!selectedCategory || parts.mainCategory === selectedCategory)
       && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
+      && (!selectedChildSubCategory || parts.childSubCategory === selectedChildSubCategory)
   })
 
   useEffect(() => {
@@ -49,6 +59,13 @@ export default function Gallery() {
     }
     if (subCategories.length === 0 && selectedSubCategory) setSelectedSubCategory('')
   }, [subCategories, selectedSubCategory])
+
+  useEffect(() => {
+    if (childSubCategories.length > 0 && !childSubCategories.includes(selectedChildSubCategory)) {
+      setSelectedChildSubCategory(childSubCategories[0])
+    }
+    if (childSubCategories.length === 0 && selectedChildSubCategory) setSelectedChildSubCategory('')
+  }, [childSubCategories, selectedChildSubCategory])
 
   if (isLoading) {
     return (
@@ -76,7 +93,7 @@ export default function Gallery() {
         {categories.map((category) => (
           <button
             key={category}
-            onClick={() => { setSelectedCategory(category); setSelectedSubCategory('') }}
+            onClick={() => { setSelectedCategory(category); setSelectedSubCategory(''); setSelectedChildSubCategory('') }}
             className={`px-5 py-2 text-xs uppercase tracking-widest border transition-all ${
               selectedCategory === category
                 ? 'bg-crystal-blue text-white border-crystal-blue'
@@ -92,10 +109,27 @@ export default function Gallery() {
           {subCategories.map((category) => (
             <button
               key={category}
-              onClick={() => setSelectedSubCategory(category)}
+              onClick={() => { setSelectedSubCategory(category); setSelectedChildSubCategory('') }}
               className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${
                 selectedSubCategory === category
                   ? 'bg-crystal-gold text-crystal-dark border-crystal-gold'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
+              }`}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      )}
+      {childSubCategories.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-3 mb-10 -mt-4">
+          {childSubCategories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedChildSubCategory(category)}
+              className={`px-4 py-2 text-[10px] uppercase tracking-widest border transition-all ${
+                selectedChildSubCategory === category
+                  ? 'bg-crystal-dark text-white border-crystal-dark'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-crystal-gold hover:text-crystal-blue'
               }`}
             >
@@ -127,6 +161,9 @@ export default function Gallery() {
               <span className="text-crystal-gold text-xs uppercase tracking-widest mb-2">{splitCategory(image.category).mainCategory}</span>
               {splitCategory(image.category).subCategory && (
                 <span className="text-gray-200 text-xs mb-2">{splitCategory(image.category).subCategory}</span>
+              )}
+              {splitCategory(image.category).childSubCategory && (
+                <span className="text-gray-300 text-[11px] mb-2">{splitCategory(image.category).childSubCategory}</span>
               )}
               <h3 className="text-white text-lg font-serif">{image.title}</h3>
             </div>

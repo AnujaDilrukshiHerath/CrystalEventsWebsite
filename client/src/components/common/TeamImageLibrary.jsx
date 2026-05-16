@@ -15,16 +15,18 @@ const formatInternalCategory = (category = '') => (
 
 const splitCategory = (category = '') => {
   const visibleCategory = formatInternalCategory(category)
-  const [mainCategory, ...subCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
+  const [mainCategory, subCategory, ...childSubCategoryParts] = visibleCategory.split(CATEGORY_SEPARATOR)
   return {
     mainCategory: mainCategory || '',
-    subCategory: subCategoryParts.join(CATEGORY_SEPARATOR)
+    subCategory: subCategory || '',
+    childSubCategory: childSubCategoryParts.join(CATEGORY_SEPARATOR)
   }
 }
 
 export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = 'team-gallery', title = 'Customer Showcase' }) {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategory, setSelectedSubCategory] = useState('')
+  const [selectedChildSubCategory, setSelectedChildSubCategory] = useState('')
   const [selectedImage, setSelectedImage] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: [queryKey],
@@ -42,10 +44,18 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
     ?.filter((image) => splitCategory(image.category).mainCategory === selectedCategory)
     .map((image) => splitCategory(image.category).subCategory)
     .filter(Boolean) || [])]
+  const childSubCategories = [...new Set(images
+    ?.filter((image) => {
+      const parts = splitCategory(image.category)
+      return parts.mainCategory === selectedCategory && parts.subCategory === selectedSubCategory
+    })
+    .map((image) => splitCategory(image.category).childSubCategory)
+    .filter(Boolean) || [])]
   const visibleImages = images?.filter((image) => {
     const parts = splitCategory(image.category)
     return (!selectedCategory || parts.mainCategory === selectedCategory)
       && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
+      && (!selectedChildSubCategory || parts.childSubCategory === selectedChildSubCategory)
   })
 
   useEffect(() => {
@@ -59,6 +69,13 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
     if (subCategories.length === 0 && selectedSubCategory) setSelectedSubCategory('')
   }, [subCategories, selectedSubCategory])
 
+  useEffect(() => {
+    if (childSubCategories.length > 0 && !childSubCategories.includes(selectedChildSubCategory)) {
+      setSelectedChildSubCategory(childSubCategories[0])
+    }
+    if (childSubCategories.length === 0 && selectedChildSubCategory) setSelectedChildSubCategory('')
+  }, [childSubCategories, selectedChildSubCategory])
+
   return (
     <div className="bg-white shadow-xl rounded-sm border-t-4 border-crystal-gold overflow-hidden">
       <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gray-50">
@@ -68,7 +85,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
         </div>
         <select
           value={selectedCategory}
-          onChange={(e) => { setSelectedCategory(e.target.value); setSelectedSubCategory('') }}
+          onChange={(e) => { setSelectedCategory(e.target.value); setSelectedSubCategory(''); setSelectedChildSubCategory('') }}
           className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
         >
           {categories.map((category) => (
@@ -78,10 +95,21 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
         {subCategories.length > 0 && (
           <select
             value={selectedSubCategory}
-            onChange={(e) => setSelectedSubCategory(e.target.value)}
+            onChange={(e) => { setSelectedSubCategory(e.target.value); setSelectedChildSubCategory('') }}
             className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
           >
             {subCategories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        )}
+        {childSubCategories.length > 0 && (
+          <select
+            value={selectedChildSubCategory}
+            onChange={(e) => setSelectedChildSubCategory(e.target.value)}
+            className="bg-white border border-gray-200 px-4 py-2 text-xs uppercase tracking-widest text-gray-500 outline-none"
+          >
+            {childSubCategories.map((category) => (
               <option key={category} value={category}>{category}</option>
             ))}
           </select>
@@ -111,6 +139,9 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
                 <div className="text-[10px] uppercase tracking-widest text-crystal-gold font-bold">{splitCategory(image.category).mainCategory}</div>
                 {splitCategory(image.category).subCategory && (
                   <div className="text-[10px] text-gray-400 mt-1">{splitCategory(image.category).subCategory}</div>
+                )}
+                {splitCategory(image.category).childSubCategory && (
+                  <div className="text-[10px] text-gray-400 mt-1">{splitCategory(image.category).childSubCategory}</div>
                 )}
                 <h3 className="text-sm font-semibold text-crystal-dark mt-1">{image.title}</h3>
               </div>
