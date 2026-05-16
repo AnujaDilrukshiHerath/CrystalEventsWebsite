@@ -21,7 +21,7 @@ export default function Gallery() {
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategory, setSelectedSubCategory] = useState('')
   const [selectedChildSubCategory, setSelectedChildSubCategory] = useState('')
-  const [selectedImage, setSelectedImage] = useState(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: ['gallery'],
     queryFn: async () => {
@@ -48,6 +48,14 @@ export default function Gallery() {
       && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
       && (!selectedChildSubCategory || parts.childSubCategory === selectedChildSubCategory)
   })
+  const visibleImages = filteredImages || []
+  const selectedImage = selectedImageIndex !== null && visibleImages[selectedImageIndex]
+    ? {
+        src: getImageUrl(visibleImages[selectedImageIndex].url),
+        alt: visibleImages[selectedImageIndex].title,
+        title: visibleImages[selectedImageIndex].title
+      }
+    : null
 
   useEffect(() => {
     if (selectedCategory && !categories.includes(selectedCategory)) setSelectedCategory('')
@@ -150,7 +158,7 @@ export default function Gallery() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredImages?.map((image, index) => (
+        {visibleImages.map((image, index) => (
           <motion.div 
             key={image.id}
             initial={{ opacity: 0, scale: 0.9 }}
@@ -158,7 +166,7 @@ export default function Gallery() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
             className="relative group overflow-hidden aspect-square rounded-sm shadow-lg bg-gray-200 cursor-zoom-in"
-            onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title })}
+            onClick={() => setSelectedImageIndex(index)}
           >
             <WatermarkedImage
               src={getImageUrl(image.url)}
@@ -180,7 +188,15 @@ export default function Gallery() {
           </motion.div>
         ))}
       </div>
-      <ImageLightbox image={selectedImage} onClose={() => setSelectedImage(null)} />
+      <ImageLightbox
+        image={selectedImage}
+        onClose={() => setSelectedImageIndex(null)}
+        hasPrevious={selectedImageIndex > 0}
+        hasNext={selectedImageIndex !== null && selectedImageIndex < visibleImages.length - 1}
+        onPrevious={() => setSelectedImageIndex((index) => Math.max((index || 0) - 1, 0))}
+        onNext={() => setSelectedImageIndex((index) => Math.min((index || 0) + 1, visibleImages.length - 1))}
+        counter={selectedImageIndex !== null ? `${selectedImageIndex + 1} / ${visibleImages.length}` : ''}
+      />
     </div>
   )
 }

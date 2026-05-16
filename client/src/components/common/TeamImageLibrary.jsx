@@ -27,7 +27,7 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
   const [selectedCategory, setSelectedCategory] = useState('')
   const [selectedSubCategory, setSelectedSubCategory] = useState('')
   const [selectedChildSubCategory, setSelectedChildSubCategory] = useState('')
-  const [selectedImage, setSelectedImage] = useState(null)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null)
   const { data: images, isLoading } = useQuery({
     queryKey: [queryKey],
     queryFn: async () => {
@@ -57,6 +57,14 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
       && (!selectedSubCategory || parts.subCategory === selectedSubCategory)
       && (!selectedChildSubCategory || parts.childSubCategory === selectedChildSubCategory)
   })
+  const showcaseImages = visibleImages || []
+  const selectedImage = selectedImageIndex !== null && showcaseImages[selectedImageIndex]
+    ? {
+        src: getImageUrl(showcaseImages[selectedImageIndex].url),
+        alt: showcaseImages[selectedImageIndex].title,
+        title: showcaseImages[selectedImageIndex].title
+      }
+    : null
 
   useEffect(() => {
     if (!selectedCategory && categories.length > 0) setSelectedCategory(categories[0])
@@ -118,13 +126,13 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
 
       {isLoading ? (
         <div className="p-16 text-center text-crystal-gold font-serif text-xl animate-pulse">Loading images...</div>
-      ) : visibleImages?.length ? (
+      ) : showcaseImages.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0">
-          {visibleImages.map((image) => (
+          {showcaseImages.map((image, index) => (
             <div
               key={image.id}
               className="border border-gray-50 cursor-zoom-in"
-              onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title })}
+              onClick={() => setSelectedImageIndex(index)}
             >
               <div className="aspect-square bg-gray-100 overflow-hidden">
                 <WatermarkedImage
@@ -154,7 +162,15 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
           <p className="text-gray-400 text-sm">No internal showcase images have been added yet.</p>
         </div>
       )}
-      <ImageLightbox image={selectedImage} onClose={() => setSelectedImage(null)} />
+      <ImageLightbox
+        image={selectedImage}
+        onClose={() => setSelectedImageIndex(null)}
+        hasPrevious={selectedImageIndex > 0}
+        hasNext={selectedImageIndex !== null && selectedImageIndex < showcaseImages.length - 1}
+        onPrevious={() => setSelectedImageIndex((index) => Math.max((index || 0) - 1, 0))}
+        onNext={() => setSelectedImageIndex((index) => Math.min((index || 0) + 1, showcaseImages.length - 1))}
+        counter={selectedImageIndex !== null ? `${selectedImageIndex + 1} / ${showcaseImages.length}` : ''}
+      />
     </div>
   )
 }
