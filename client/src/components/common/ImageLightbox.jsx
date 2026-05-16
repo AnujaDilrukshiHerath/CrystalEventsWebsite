@@ -69,6 +69,10 @@ export default function ImageLightbox({ image, onClose, onPrevious, onNext, hasP
           <WatermarkedImage
             src={image.src}
             alt={image.alt || ''}
+            mediaType={image.mediaType}
+            controls={image.mediaType === 'video'}
+            autoPlay={image.mediaType === 'video'}
+            muted={false}
             className="w-full max-h-[84vh] object-contain"
             watermarkClassName="right-4 bottom-4"
           />

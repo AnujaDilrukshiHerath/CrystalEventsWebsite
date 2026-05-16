@@ -53,7 +53,8 @@ export default function Gallery() {
     ? {
         src: getImageUrl(visibleImages[selectedImageIndex].url),
         alt: visibleImages[selectedImageIndex].title,
-        title: visibleImages[selectedImageIndex].title
+        title: visibleImages[selectedImageIndex].title,
+        mediaType: visibleImages[selectedImageIndex].mediaType
       }
     : null
 
@@ -171,7 +172,11 @@ export default function Gallery() {
             <WatermarkedImage
               src={getImageUrl(image.url)}
               alt={image.title}
+              mediaType={image.mediaType}
               loading="lazy"
+              controls={image.mediaType === 'video'}
+              muted
+              loop
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
               watermarkClassName="right-4 bottom-4"
             />

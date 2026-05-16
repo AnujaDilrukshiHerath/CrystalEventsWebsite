@@ -62,7 +62,8 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
     ? {
         src: getImageUrl(showcaseImages[selectedImageIndex].url),
         alt: showcaseImages[selectedImageIndex].title,
-        title: showcaseImages[selectedImageIndex].title
+        title: showcaseImages[selectedImageIndex].title,
+        mediaType: showcaseImages[selectedImageIndex].mediaType
       }
     : null
 
@@ -138,7 +139,11 @@ export default function TeamImageLibrary({ tokenKey = 'adminToken', queryKey = '
                 <WatermarkedImage
                   src={getImageUrl(image.url)}
                   alt={image.title}
+                  mediaType={image.mediaType}
                   loading="lazy"
+                  controls={image.mediaType === 'video'}
+                  muted
+                  loop
                   className="w-full h-full object-cover"
                   watermarkClassName="right-3 bottom-3 p-1.5 [&_img]:h-7"
                 />

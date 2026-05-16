@@ -4,8 +4,10 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretcrystaleventskey123';
-const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+const MEDIA_TYPES = [...IMAGE_TYPES, ...VIDEO_TYPES];
 
 const INTERNAL_CATEGORY_PREFIX = 'Internal: ';
 const LEGACY_INTERNAL_CATEGORIES = [
@@ -158,9 +160,26 @@ const titleFromFilename = (filename) => {
 
 const toDataUrl = (file) => `data:${file.contentType};base64,${file.data.toString('base64')}`;
 
+const mediaMetaFromUrl = (url = '') => {
+  const dataMatch = url.match(/^data:([^;]+);base64,/);
+  const mimeType = dataMatch?.[1] || '';
+  const cleanUrl = url.split('?')[0].split('#')[0].toLowerCase();
+  const isVideo = mimeType.startsWith('video/')
+    || cleanUrl.endsWith('.mp4')
+    || cleanUrl.endsWith('.webm')
+    || cleanUrl.endsWith('.mov')
+    || cleanUrl.endsWith('.m4v');
+
+  return {
+    mediaType: isVideo ? 'video' : 'image',
+    mimeType: mimeType || (isVideo ? 'video/mp4' : 'image/jpeg')
+  };
+};
+
 const withDisplayUrl = (image) => ({
   ...image,
-  url: image.url?.startsWith('data:') ? `/api/gallery-images/${image.id}/image` : image.url
+  url: image.url?.startsWith('data:') ? `/api/gallery-images/${image.id}/image` : image.url,
+  ...mediaMetaFromUrl(image.url)
 });
 
 const mapDisplayUrls = (images) => images.map(withDisplayUrl);
@@ -170,7 +189,7 @@ exports.getGalleryImageAsset = async (req, res) => {
     const { id } = req.params;
     const image = await prisma.galleryImage.findUnique({ where: { id } });
     if (!image) {
-      return res.status(404).json({ message: 'Image not found' });
+      return res.status(404).json({ message: 'Media not found' });
     }
 
     if (!image.url?.startsWith('data:')) {
@@ -184,7 +203,30 @@ exports.getGalleryImageAsset = async (req, res) => {
 
     res.setHeader('Content-Type', match[1]);
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-    res.send(Buffer.from(match[2], 'base64'));
+    const mediaBuffer = Buffer.from(match[2], 'base64');
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : mediaBuffer.length - 1;
+      const safeEnd = Math.min(end, mediaBuffer.length - 1);
+
+      if (Number.isNaN(start) || start >= mediaBuffer.length) {
+        res.setHeader('Content-Range', `bytes */${mediaBuffer.length}`);
+        return res.status(416).end();
+      }
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${safeEnd}/${mediaBuffer.length}`);
+      res.setHeader('Accept-Ranges', 'bytes');
+      res.setHeader('Content-Length', safeEnd - start + 1);
+      return res.send(mediaBuffer.subarray(start, safeEnd + 1));
+    }
+
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', mediaBuffer.length);
+    res.send(mediaBuffer);
   } catch (error) {
     console.error('Error serving gallery image:', error);
     res.status(500).json({ message: 'Error serving gallery image' });
@@ -289,8 +331,8 @@ exports.uploadGalleryImages = async (req, res) => {
 
     const createdImages = [];
     for (const [index, file] of files.entries()) {
-      if (!IMAGE_TYPES.includes(file.contentType)) {
-        return res.status(400).json({ message: 'Only JPG, PNG, WebP, and GIF images are supported' });
+      if (!MEDIA_TYPES.includes(file.contentType)) {
+        return res.status(400).json({ message: 'Only JPG, PNG, WebP, GIF, MP4, WebM, and MOV files are supported' });
       }
 
       const imageTitle = files.length === 1 && fields.title ? fields.title : titleFromFilename(file.filename);

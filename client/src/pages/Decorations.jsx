@@ -151,13 +151,17 @@ export default function Decorations() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.45, delay: index * 0.05 }}
                 className="group overflow-hidden bg-white shadow-lg border border-gray-100 cursor-zoom-in"
-                onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title })}
+                onClick={() => setSelectedImage({ src: getImageUrl(image.url), alt: image.title, title: image.title, mediaType: image.mediaType })}
               >
                 <div className="aspect-[4/5] bg-gray-100 overflow-hidden">
                   <WatermarkedImage
                     src={getImageUrl(image.url)}
                     alt={image.title}
+                    mediaType={image.mediaType}
                     loading="lazy"
+                    controls={image.mediaType === 'video'}
+                    muted
+                    loop
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                     watermarkClassName="right-4 bottom-4"
                   />

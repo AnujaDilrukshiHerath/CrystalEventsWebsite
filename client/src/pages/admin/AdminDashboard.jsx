@@ -958,11 +958,12 @@ export default function AdminDashboard() {
                           {/* Image Preview */}
                           <div
                             className="aspect-square overflow-hidden bg-gray-100 cursor-zoom-in"
-                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title })}
+                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title, mediaType: img.mediaType })}
                           >
                             <WatermarkedImage
                               src={getImageUrl(img.url)}
                               alt={img.title}
+                              mediaType={img.mediaType}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
                               onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
@@ -1115,11 +1116,12 @@ export default function AdminDashboard() {
                         <div key={img.id} className="relative group border border-gray-50">
                           <div
                             className="aspect-square overflow-hidden bg-gray-100 cursor-zoom-in"
-                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title })}
+                            onClick={() => setSelectedImage({ src: getImageUrl(img.url), alt: img.title, title: img.title, mediaType: img.mediaType })}
                           >
                             <WatermarkedImage
                               src={getImageUrl(img.url)}
                               alt={img.title}
+                              mediaType={img.mediaType}
                               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                               watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
                               onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="10">No Image</text></svg>' }}
@@ -1529,19 +1531,19 @@ export default function AdminDashboard() {
 
               {!galleryModal.data && (
                 <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Drop Image Files</label>
+                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">Drop Image or Video Files</label>
                   <label
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={(e) => {
                       e.preventDefault();
-                      setGalleryFiles(Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/')));
+                      setGalleryFiles(Array.from(e.dataTransfer.files).filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/')));
                     }}
                     className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 bg-gray-50 p-6 text-center hover:border-crystal-gold hover:bg-white transition-colors"
                   >
                     <Upload size={28} className="text-crystal-gold" />
-                    <div>
-                      <div className="text-sm font-semibold text-crystal-blue">Drop images here or click to choose</div>
-                      <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF</div>
+                      <div>
+                      <div className="text-sm font-semibold text-crystal-blue">Drop images or videos here, or click to choose</div>
+                      <div className="text-[10px] uppercase tracking-widest text-gray-400 mt-1">JPG, PNG, WebP, GIF, MP4, WebM, MOV</div>
                       <div className="text-[10px] uppercase tracking-widest text-crystal-gold mt-1">
                         {modalIsInternal ? 'For sales and branch portals only' : 'Logo watermark appears automatically on the website'}
                       </div>
@@ -1549,7 +1551,7 @@ export default function AdminDashboard() {
                     <input
                       name="images"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,video/*"
                       multiple
                       className="hidden"
                       onChange={(e) => setGalleryFiles(Array.from(e.target.files || []))}
@@ -1576,7 +1578,7 @@ export default function AdminDashboard() {
                   name="url"
                   defaultValue=""
                   required={!galleryModal.data && galleryFiles.length === 0}
-                  placeholder="https://... or /images/gallery/filename.jpeg"
+                  placeholder="https://... or /images/gallery/filename.jpeg or .mp4"
                   className="w-full border-b-2 border-gray-100 focus:border-crystal-gold py-2 outline-none transition-colors text-sm"
                 />
                 <p className="text-[10px] text-gray-400 mt-1">Use this when you want to paste a hosted image URL instead</p>
@@ -1588,6 +1590,8 @@ export default function AdminDashboard() {
                   <WatermarkedImage
                     src={getImageUrl(galleryModal.data.url)}
                     alt="Preview"
+                    mediaType={galleryModal.data.mediaType}
+                    controls={galleryModal.data.mediaType === 'video'}
                     className="w-full h-full object-cover"
                     watermarkClassName="right-2 bottom-2 p-1.5 [&_img]:h-6"
                     onError={(e) => { e.target.style.display = 'none' }}
