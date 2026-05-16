@@ -49,11 +49,14 @@ exports.submitEnquiry = async (req, res) => {
       }
 
       const adminEmail = process.env.ADMIN_EMAIL || "crystalpayments@icloud.com";
+      const senderEmail = process.env.SMTP_FROM || adminEmail;
+      const senderName = process.env.SMTP_FROM_NAME || "Crystal Events";
+      const sender = `"${senderName}" <${senderEmail}>`;
 
       const mailOptions = {
-        from: `"Crystal Events" <${process.env.SMTP_USER}>`,
+        from: sender,
         to: [adminEmail, branchAdminEmail], // Send to admins and branch manager
-        replyTo: process.env.ADMIN_EMAIL || 'crystalpayments@icloud.com', // Reply goes to business email, not personal SMTP account
+        replyTo: email, // Reply goes straight to the customer
         subject: `New Enquiry: ${eventType} at ${preferredBranch}`,
         html: `
           <h2>New Enquiry Received</h2>
@@ -62,10 +65,10 @@ exports.submitEnquiry = async (req, res) => {
           <p><b>Phone:</b> ${phone}</p>
           <p><b>Event Type:</b> ${eventType}</p>
           <p><b>Branch:</b> ${preferredBranch}</p>
-          <p><b>Hall:</b> ${preferredHall}</p>
-          <p><b>Guests:</b> ${estimatedGuestCount}</p>
-          <p><b>Date:</b> ${eventDate}</p>
-          <p><b>Message:</b> ${message}</p>
+          <p><b>Hall:</b> ${preferredHall || 'Not selected'}</p>
+          <p><b>Guests:</b> ${estimatedGuestCount || 'Not provided'}</p>
+          <p><b>Date:</b> ${eventDate || 'Not provided'}</p>
+          <p><b>Message:</b> ${message || 'No message provided'}</p>
           <hr>
           <p>This is an automated notification from your Crystal Events website.</p>
         `
@@ -75,8 +78,9 @@ exports.submitEnquiry = async (req, res) => {
 
       // Optional: Send confirmation to the customer
       const customerMailOptions = {
-        from: `"Crystal Events" <${process.env.SMTP_USER}>`,
+        from: sender,
         to: email,
+        replyTo: adminEmail,
         subject: `Thank you for your enquiry - Crystal Events`,
         html: `
           <h2>Thank you for contacting Crystal Events!</h2>
